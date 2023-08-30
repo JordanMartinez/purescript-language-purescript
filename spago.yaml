@@ -47,7 +47,7 @@ workspace:
     
     tidy-codegen:
       git: https://github.com/natefaubion/purescript-tidy-codegen.git
-      ref: type-applications
+      ref: v4.0.0
       dependencies:
       - aff
       - ansi

@@ -53,7 +53,7 @@ newtype Package a = Package
   , version :: Version
   , versionTag :: String
   , tagTime :: Maybe DateTime
-  , modules :: Array DModule
+  , modules :: Array DocModule
   , moduleMap :: Map ModuleName PackageName
   , resolvedDependencies :: Array (Tuple PackageName Version)
   , github :: Tuple GithubUser GithubRepo
@@ -73,7 +73,7 @@ packageJSON uploaderJSON = fromRecordN Package
   { packageMeta: fromRequired packageMetaJSON
   , version: fromRequired versionJSON
   , versionTag: fromRequired JSON.fromString
-  , modules: fromRequired $ fromArray dModuleJSON
+  , modules: fromRequired $ fromArray docModuleJSON
   , moduleMap: fromRequired $ (fromPropArray <<< map (bimap unwrap packageNameJSON) <<< Map.toUnfoldable)
   , resolvedDependencies: fromRequired $ (fromPropArray <<< map (bimap unwrap versionJSON))
   , github: fromRequired $ tupleJSON githubUserJSON githubRepoJSON
@@ -96,7 +96,7 @@ jsonPackage minimumVersion jsonUploader j = do
     , version: toRequired jsonVersion
     , versionTag: toRequired toString
     , tagTime: toOption jsonIso8601
-    , modules: toRequired $ toArray jsonDModule
+    , modules: toRequired $ toArray jsonDocModule
     , moduleMap: ToRecordCodec $ Right $ NonEmptyArray
         [ Tuple Nothing \key mbJ -> do
             x <- note ("under requird key " <> key <> ", ") mbJ
@@ -194,22 +194,22 @@ derive instance Generic ManifestError _
 instance Show ManifestError where
   show x = genericShow x
 
-newtype DModule = DModule
+newtype DocModule = DocModule
   { name :: ModuleName
   , comments :: Maybe String
   , declarations :: Array Declaration
   , reExports :: Array (Tuple (InPackage ModuleName) (Array Declaration))
   }
 
-derive instance Eq DModule
-derive instance Ord DModule
-derive instance Newtype DModule _
-derive instance Generic DModule _
-instance Show DModule where
+derive instance Eq DocModule
+derive instance Ord DocModule
+derive instance Newtype DocModule _
+derive instance Generic DocModule _
+instance Show DocModule where
   show x = genericShow x
 
-dModuleJSON :: DModule -> JSON
-dModuleJSON = fromRecordN DModule
+docModuleJSON :: DocModule -> JSON
+docModuleJSON = fromRecordN DocModule
   { name: fromRequired $ unwrap >>> JSON.fromString
   , comments: fromOption JSON.fromString
   , declarations: fromRequired $ fromArray declarationJSON
@@ -222,8 +222,8 @@ dModuleJSON = fromRecordN DModule
     , Tuple "declarations" $ fromArray declarationJSON decls
     ]
 
-jsonDModule :: JSON -> Either String DModule
-jsonDModule = toRecordN DModule
+jsonDocModule :: JSON -> Either String DocModule
+jsonDocModule = toRecordN DocModule
   { name: toRequired $ coerce <<< toString
   , comments: toRequired $ toNullNothingOrJust toString
   , declarations: toRequired $ toArray jsonDeclaration

@@ -12,7 +12,7 @@ import Effect.Class (liftEffect)
 import Effect.Class.Console as Console
 import JSON (JSON)
 import JSON as JSON
-import Language.PureScript.Docs.Types (jsonDModule, jsonGithubUser, jsonPackage)
+import Language.PureScript.Docs.Types (jsonDocModule, jsonGithubUser, jsonPackage)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff as FSA
 import Node.FS.Stats as Stat
@@ -33,7 +33,7 @@ runDependencyDocsDecodeTest = do
     let path = Path.concat [ output, child, "docs.json" ]
     exists <- liftEffect $ FSSync.exists path
     when exists do
-      decodeFile jsonDModule path child
+      decodeFile jsonDocModule path child
   where
   output = "output"
 

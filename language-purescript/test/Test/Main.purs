@@ -52,7 +52,7 @@ runOldCompilerPackageTest = do
         decodeFile codec docsFile $ repo <> "@" <> versionFile
 
   where
-  fixturesDir = Path.concat [ "language-purescript-types", "test", "fixtures" ]
+  fixturesDir = Path.concat [ "language-purescript", "test", "fixtures" ]
 
 runPursuitTestsPackageTest :: Aff Unit
 runPursuitTestsPackageTest = do
@@ -69,7 +69,7 @@ runPursuitTestsPackageTest = do
         decodeFile codec docsFile $ "(compiler: " <> compilerDir <> "; repo-version: " <> versionFile <> ")"
 
   where
-  jsonCompatDir = Path.concat [ "language-purescript-types", "test", "json-compat" ]
+  jsonCompatDir = Path.concat [ "language-purescript", "test", "json-compat" ]
 
 decodeFile :: forall a. (JSON -> Either String a) -> FilePath -> String -> Aff Unit
 decodeFile codec file ref = do

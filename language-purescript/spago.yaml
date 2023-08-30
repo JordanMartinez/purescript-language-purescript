@@ -1,5 +1,5 @@
 package:
-  name: language-purescript-types
+  name: language-purescript
   dependencies:
     - arrays
     - bifunctors
@@ -45,4 +45,4 @@ package:
     license: BSD-3-Clause
     location:
       githubOwner: JordanMartinez
-      githubRepo: purescript-language-purescript-types
+      githubRepo: purescript-language-purescript

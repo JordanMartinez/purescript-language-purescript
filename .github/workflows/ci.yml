@@ -58,9 +58,9 @@ jobs:
       # See https://github.com/purescript/spago/issues/984
       - name: Run tests
         run: |
-          npx spago test -p language-purescript-types || node .spago/run/run.js
+          npx spago test -p language-purescript || node .spago/run/run.js
 
       - name: Check Formatting
         if: runner.os == 'Linux'
         run: |
-          purs-tidy check language-purescript-types/src language-purescript-types/test
+          purs-tidy check language-purescript/src language-purescript/test

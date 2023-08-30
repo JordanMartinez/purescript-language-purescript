@@ -1,6 +1,6 @@
-# purescript-language-purescript-types
+# purescript-language-purescript
 
-PureScript types and codecs for the PureScript programming language.
+Types and codecs for the PureScript programming language written in PureScript.
 
 ## License
 

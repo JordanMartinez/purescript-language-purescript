@@ -1,0 +1,23 @@
+package:
+  name: "scripts-gen-constants"
+  dependencies:
+    - aff
+    - arrays
+    - effect
+    - foldable-traversable
+    - free
+    - identity
+    - language-cst-parser
+    - lists
+    - node-buffer
+    - node-fs
+    - node-fs-aff
+    - node-path
+    - partial
+    - prelude
+    - strings
+    - tidy-codegen
+    - transformers
+
+  run:
+    main: Scripts.GenConstants

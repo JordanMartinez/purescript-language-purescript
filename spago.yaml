@@ -1,0 +1,145 @@
+workspace:
+  package_set:
+    registry: 36.3.0
+
+  build_opts:
+    pedantic_packages: true
+    censor_warnings: "dependency"
+    strict: true
+    stash: true
+
+  extra_packages:
+    language-purescript-types:
+      path: "language-purescript-types"
+    language-cst-parser:
+      git: https://github.com/natefaubion/purescript-language-cst-parser.git
+      ref: "v0.13.0"
+      dependencies:
+        - "arrays"
+        - "console"
+        - "const"
+        - "control"
+        - "effect"
+        - "either"
+        - "enums"
+        - "foldable-traversable"
+        - "free"
+        - "functions"
+        - "functors"
+        - "identity"
+        - "integers"
+        - "lazy"
+        - "lists"
+        - "maybe"
+        - "newtype"
+        - "node-process"
+        - "numbers"
+        - "ordered-collections"
+        - "partial"
+        - "prelude"
+        - "st"
+        - "strings"
+        - "transformers"
+        - "tuples"
+        - "typelevel-prelude"
+        - "unfoldable"
+        - "unsafe-coerce"
+    
+    tidy-codegen:
+      git: https://github.com/natefaubion/purescript-tidy-codegen.git
+      ref: type-applications
+      dependencies:
+      - aff
+      - ansi
+      - arrays
+      - avar
+      - bifunctors
+      - console
+      - control
+      - dodo-printer
+      - effect
+      - either
+      - enums
+      - exceptions
+      - filterable
+      - foldable-traversable
+      - free
+      - identity
+      - integers
+      - language-cst-parser
+      - lazy
+      - lists
+      - maybe
+      - newtype
+      - node-buffer
+      - node-child-process
+      - node-fs-aff
+      - node-path
+      - node-process
+      - node-streams
+      - ordered-collections
+      - parallel
+      - partial
+      - posix-types
+      - prelude
+      - record
+      - safe-coerce
+      - st
+      - strings
+      - tidy
+      - transformers
+      - tuples
+      - type-equality
+      - unicode
+    tidy:
+      git: https://github.com/natefaubion/purescript-tidy.git
+      ref: "v0.10.0"
+      dependencies:
+        - arrays
+        - control
+        - dodo-printer
+        - either
+        - foldable-traversable
+        - lists
+        - maybe
+        - newtype
+        - ordered-collections
+        - partial
+        - prelude
+        - language-cst-parser
+        - strings
+        - tuples
+    json:
+      git: https://github.com/purescript/purescript-json.git
+      ref: c9e053d0aad6882cf870e14766d7fbbfd15f0d8a
+      dependencies:
+        - prelude
+        - functions
+        - maybe
+        - either
+        - tuples
+        - foldable-traversable
+        - gen
+        - strings
+        - unfoldable
+    node-glob-basic:
+      git: https://github.com/natefaubion/purescript-node-glob-basic.git
+      ref: "v1.2.2"
+      dependencies:
+        - aff
+        - console
+        - effect
+        - either
+        - foldable-traversable
+        - lists
+        - maybe
+        - node-fs
+        - node-fs-aff
+        - node-path
+        - node-process
+        - ordered-collections
+        - parallel
+        - prelude
+        - refs
+        - strings
+        - tuples

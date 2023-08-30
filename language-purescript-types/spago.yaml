@@ -1,0 +1,41 @@
+package:
+  name: language-purescript-types
+  dependencies:
+    - arrays
+    - bifunctors
+    - control
+    - datetime
+    - either
+    - enums
+    - foldable-traversable
+    - formatters
+    - functions
+    - integers
+    - json
+    - lists
+    - maybe
+    - newtype
+    - nullable
+    - ordered-collections
+    - partial
+    - prelude
+    - record
+    - safe-coerce
+    - st
+    - strings
+    - tuples
+    - unicode
+    - unsafe-coerce
+    - versions
+
+  test:
+    main: Test.Main
+    dependencies:
+      - console
+      - effect
+      - aff
+      - lists
+      - node-buffer
+      - node-fs
+      - node-fs-aff
+      - node-path

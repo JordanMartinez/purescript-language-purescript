@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "genConstants": "spago -x genConstants.dhall run -m GenConstants"
+  },
+  "dependencies": {
+    "spago": "^0.93.10"
+  }
+}

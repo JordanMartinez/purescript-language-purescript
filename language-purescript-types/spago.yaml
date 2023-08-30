@@ -39,3 +39,10 @@ package:
       - node-fs
       - node-fs-aff
       - node-path
+
+  publish:
+    version: 0.1.0
+    license: BSD-3-Clause
+    location:
+      githubOwner: JordanMartinez
+      githubRepo: purescript-language-purescript-types

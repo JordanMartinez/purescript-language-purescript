@@ -1,0 +1,66 @@
+name: CI
+
+# Run CI when a PR is opened against the branch `main`
+# and when one pushes a commit to `main`.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node toolchain
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
+
+      - name: Cache NPM dependencies
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - name: Setup PureScript tooling
+        run:
+          npm i -g purescript@latest purs-tidy@latest spago@next
+
+      - name: Install NPM dependencies
+        run: npm install
+
+      - name: Cache PureScript dependencies
+        uses: actions/cache@v3
+        with:
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          path: |
+            .spago
+            output
+
+      # Compile the library/project
+      #   censor-lib: ignore warnings emitted by dependencies
+      #   strict: convert warnings into errors
+      # Note: `purs-args` actually forwards these args to `psa`
+      - name: Build the project
+        run: |
+          npx spago build
+
+      # See https://github.com/purescript/spago/issues/984
+      - name: Run tests
+        run: |
+          npx spago test -p language-purescript-types || node .spago/run/run.js
+
+      - name: Check Formatting
+        if: runner.os == 'Linux'
+        run: |
+          purs-tidy check language-purescript-types/src language-purescript-types/test

@@ -9,8 +9,8 @@ workspace:
     stash: true
 
   extra_packages:
-    language-purescript-types:
-      path: "language-purescript-types"
+    language-purescript:
+      path: "language-purescript"
     language-cst-parser:
       git: https://github.com/natefaubion/purescript-language-cst-parser.git
       ref: "v0.13.0"

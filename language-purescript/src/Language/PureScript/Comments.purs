@@ -2,14 +2,13 @@ module Language.PureScript.Comments where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value (toJObject, toString, underKey)
+import Codec.Json.Unidirectional.Value as Json
 import Control.Alt ((<|>))
-import Data.Either (Either, note)
+import Data.Argonaut.Core (Json)
+import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
-import JSON (JSON)
-import JSON as JSON
-import JSON.ExtraCodecs (toJObject, toString)
-import JSON.Object as JO
 
 data Comment
   = LineComment String
@@ -21,15 +20,15 @@ derive instance Generic Comment _
 instance Show Comment where
   show x = genericShow x
 
-commentJSON :: Comment -> JSON
+commentJSON :: Comment -> Json
 commentJSON = case _ of
-  LineComment str -> JSON.fromJObject $ JO.insert "LineComment" (JSON.fromString str) JO.empty
-  BlockComment str -> JSON.fromJObject $ JO.insert "BlockComment" (JSON.fromString str) JO.empty
+  LineComment str -> Json.fromObjSingleton "LineComment" (Json.fromString str)
+  BlockComment str -> Json.fromObjSingleton "BlockComment" (Json.fromString str)
 
-jsonComment :: JSON -> Either String Comment
+jsonComment :: Json -> Either Json.DecodeError Comment
 jsonComment j = do
   jo <- toJObject j
   decodeLineComment jo <|> decodeBlockComment jo
   where
-  decodeLineComment jo = (note "required key 'LineComment' missing, " $ JO.lookup "LineComment" jo) >>= toString >>> map LineComment
-  decodeBlockComment jo = (note "required key 'BlockComment' missing, " $ JO.lookup "BlockComment" jo) >>= toString >>> map BlockComment
+  decodeLineComment = underKey "LineComment" (toString >>> map LineComment)
+  decodeBlockComment = underKey "BlockComment" (toString >>> map BlockComment)

@@ -3,21 +3,20 @@ module Language.PureScript.Types where
 import Prelude
 import Prim hiding (Type, Constraint)
 
+import Codec.Json.Unidirectional.Value (ToProp(..), altAccumulateLazy, toRecordN)
+import Codec.Json.Unidirectional.Value as Json
 import Control.Alt ((<|>))
+import Data.Argonaut.Core (Json)
 import Data.Array (zipWith)
-import Data.Array.NonEmpty as NEA
-import Data.Bifunctor (lmap)
-import Data.Either (Either(..), note)
+import Data.Either (Either(..))
 import Data.Foldable (class Foldable, and, fold)
+import Data.Function.Uncurried (mkFn2)
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Show.Generic (genericShow)
 import Data.Traversable (class Traversable)
 import Data.Tuple (Tuple(..))
-import JSON (JSON)
-import JSON as JSON
-import JSON.ExtraCodecs (ToRecordCodec(..), fromArray, fromArray2, fromArray3, fromArray4, fromJoSingleton, fromNullOrJust, fromPropArray, fromRecord, fromRequiredRename, toArray, toArray2, toArray3, toArray4, toBoolean, toInt, toJObject, toNull, toNullNothingOrJust, toOptionDefaultRename, toRecord, toRequired, toRequiredRename, toString, underRequiredKey)
 import Language.PureScript.AST.SourcePos (SourceAnn, nullSourceAnn)
 import Language.PureScript.Constants.Prim as C
 import Language.PureScript.Label (Label, jsonLabel, labelJSON)
@@ -35,11 +34,11 @@ derive instance Generic SkolemScope _
 instance Show SkolemScope where
   show x = genericShow x
 
-skolemScopeJSON :: SkolemScope -> JSON
-skolemScopeJSON = unwrap >>> JSON.fromInt
+skolemScopeJSON :: SkolemScope -> Json
+skolemScopeJSON = unwrap >>> Json.fromInt
 
-jsonSkolemScope :: JSON -> Either String SkolemScope
-jsonSkolemScope = lmap (append "for SkolemScope, ") <<< coerce toInt
+jsonSkolemScope :: Json -> Either Json.DecodeError SkolemScope
+jsonSkolemScope = coerce Json.toInt
 
 data WildcardData
   = HoleWildcard String
@@ -52,18 +51,18 @@ derive instance Generic WildcardData _
 instance Show WildcardData where
   show x = genericShow x
 
-wildcardDataJSON :: WildcardData -> JSON
+wildcardDataJSON :: WildcardData -> Json
 wildcardDataJSON = case _ of
-  HoleWildcard name -> JSON.fromString name
-  UnnamedWildcard -> JSON.null
-  IgnoredWildcard -> fromJoSingleton "ignored" (JSON.fromBoolean true)
+  HoleWildcard name -> Json.fromString name
+  UnnamedWildcard -> Json.fromJNull
+  IgnoredWildcard -> Json.fromObjSingleton "ignored" (Json.fromBoolean true)
 
-jsonWildcardData :: JSON -> Either String WildcardData
+jsonWildcardData :: Json -> Either Json.DecodeError WildcardData
 jsonWildcardData j = holeWildcard <|> unnamedWildcard <|> ignoredWildcard
   where
-  holeWildcard = HoleWildcard <$> toString j
-  unnamedWildcard = UnnamedWildcard <$ toNull j
-  ignoredWildcard = IgnoredWildcard <$ toJObject j
+  holeWildcard = HoleWildcard <$> Json.toString j
+  unnamedWildcard = UnnamedWildcard <$ Json.toJNull j
+  ignoredWildcard = IgnoredWildcard <$ Json.toJObject j
 
 data TypeVarVisibility
   = TypeVarVisible
@@ -75,16 +74,16 @@ derive instance Generic TypeVarVisibility _
 instance Show TypeVarVisibility where
   show x = genericShow x
 
-typeVarVisibilityJSON :: TypeVarVisibility -> JSON
-typeVarVisibilityJSON = JSON.fromString <<< case _ of
+typeVarVisibilityJSON :: TypeVarVisibility -> Json
+typeVarVisibilityJSON = Json.fromString <<< case _ of
   TypeVarVisible -> "TypeVarVisible"
   TypeVarInvisible -> "TypeVarInvisible"
 
-jsonTypeVarVisibility :: JSON -> Either String TypeVarVisibility
-jsonTypeVarVisibility = toString >=> case _ of
+jsonTypeVarVisibility :: Json -> Either Json.DecodeError TypeVarVisibility
+jsonTypeVarVisibility = Json.toString >=> case _ of
   "TypeVarVisible" -> pure TypeVarVisible
   "TypeVarInvisible" -> pure TypeVarInvisible
-  str -> Left $ "Expected 'TypeVarVisible' or 'TypeVarInvisible' but got '" <> str <> "'."
+  str -> Left $ Json.DecodeError $ "Expected 'TypeVarVisible' or 'TypeVarInvisible' but got '" <> str <> "'."
 
 type SourceType = Type SourceAnn
 
@@ -117,17 +116,17 @@ instance Show a => Show (Type a) where
 srcTypeConstructor :: Qualified (ProperName TypeName) -> SourceType
 srcTypeConstructor = TypeConstructor nullSourceAnn
 
-typeJSON :: forall a. (a -> JSON) -> Type a -> JSON
+typeJSON :: forall a. (a -> Json) -> Type a -> Json
 typeJSON annJSON ty =
   case ty of
     TUnknown a b ->
-      variant "TUnknown" a $ JSON.fromInt b
+      variant "TUnknown" a $ Json.fromInt b
     TypeVar a b ->
-      variant "TypeVar" a $ JSON.fromString b
+      variant "TypeVar" a $ Json.fromString b
     TypeLevelString a b ->
       variant "TypeLevelString" a $ psStringJSON b
     TypeLevelInt a b ->
-      variant "TypeLevelInt" a $ JSON.fromInt b
+      variant "TypeLevelInt" a $ Json.fromInt b
     TypeWildcard a b ->
       variant "TypeWildcard" a $ wildcardDataJSON b
     TypeConstructor a b ->
@@ -135,71 +134,71 @@ typeJSON annJSON ty =
     TypeOp a b ->
       variant "TypeOp" a $ qualifiedJSON opNameJSON b
     TypeApp a b c ->
-      variant "TypeApp" a $ fromArray2 (go b) (go c)
+      variant "TypeApp" a $ Json.fromArray2 (go b) (go c)
     KindApp a b c ->
-      variant "KindApp" a $ fromArray2 (go b) (go c)
+      variant "KindApp" a $ Json.fromArray2 (go b) (go c)
     ForAll a b c d e f ->
-      variant "ForAll" a $ fromPropArray
+      variant "ForAll" a $ Json.fromPropArray
         [ Tuple "visibility" $ typeVarVisibilityJSON b
-        , Tuple "identifier" $ JSON.fromString c
-        , Tuple "kind" $ fromNullOrJust go d
+        , Tuple "identifier" $ Json.fromString c
+        , Tuple "kind" $ Json.fromNullNothingOrJust go d
         , Tuple "type" $ go e
-        , Tuple "skolem" $ fromNullOrJust skolemScopeJSON f
+        , Tuple "skolem" $ Json.fromNullNothingOrJust skolemScopeJSON f
         ]
     ConstrainedType a b c ->
-      variant "ConstrainedType" a $ fromArray2 (constraintJSON annJSON b) (go c)
+      variant "ConstrainedType" a $ Json.fromArray2 (constraintJSON annJSON b) (go c)
     Skolem a b c d e ->
-      variant "Skolem" a $ fromArray4 (JSON.fromString b) (fromNullOrJust go c) (JSON.fromInt d) (skolemScopeJSON e)
+      variant "Skolem" a $ Json.fromArray4 (Json.fromString b) (Json.fromNullNothingOrJust go c) (Json.fromInt d) (skolemScopeJSON e)
     REmpty a ->
       nullary "REmpty" a
     RCons a b c d ->
-      variant "RCons" a $ fromArray3 (labelJSON b) (go c) (go d)
+      variant "RCons" a $ Json.fromArray3 (labelJSON b) (go c) (go d)
     KindedType a b c ->
-      variant "KindedType" a $ fromArray2 (go b) (go c)
+      variant "KindedType" a $ Json.fromArray2 (go b) (go c)
     BinaryNoParensType a b c d ->
-      variant "BinaryNoParensType" a $ fromArray3 (go b) (go c) (go d)
+      variant "BinaryNoParensType" a $ Json.fromArray3 (go b) (go c) (go d)
     ParensInType a b ->
       variant "ParensInType" a (go b)
   where
-  go :: Type a -> JSON
+  go :: Type a -> Json
   go = typeJSON annJSON
 
-  variant :: String -> a -> JSON -> JSON
-  variant tag ann contents = fromPropArray
-    [ Tuple "tag" $ JSON.fromString tag
+  variant :: String -> a -> Json -> Json
+  variant tag ann contents = Json.fromPropArray
+    [ Tuple "tag" $ Json.fromString tag
     , Tuple "annotation" $ annJSON ann
     , Tuple "contents" $ contents
     ]
 
-  nullary :: String -> a -> JSON
-  nullary tag ann = fromPropArray
-    [ Tuple "tag" $ JSON.fromString tag
+  nullary :: String -> a -> Json
+  nullary tag ann = Json.fromPropArray
+    [ Tuple "tag" $ Json.fromString tag
     , Tuple "annotation" $ annJSON ann
     ]
 
-jsonSourceType :: (JSON -> Either String SourceAnn) -> JSON -> Either String (Type SourceAnn)
+jsonSourceType :: (Json -> Either Json.DecodeError SourceAnn) -> Json -> Either Json.DecodeError (Type SourceAnn)
 jsonSourceType jsonAnn = jsonType' (pure nullSourceAnn) jsonAnn
 
-jsonTypeUnit :: JSON -> Either String (Type Unit)
-jsonTypeUnit = jsonType' (pure unit) toNull
+jsonTypeUnit :: Json -> Either Json.DecodeError (Type Unit)
+jsonTypeUnit = jsonType' (pure unit) Json.toJNull
 
-jsonType' :: forall a. Either String a -> (JSON -> Either String a) -> JSON -> Either String (Type a)
+jsonType' :: forall a. Either Json.DecodeError a -> (Json -> Either Json.DecodeError a) -> Json -> Either Json.DecodeError (Type a)
 jsonType' defaultAnn jsonAnn j = do
-  o <- toJObject j
-  tag <- underRequiredKey "tag" o toString
-  a <- (underRequiredKey "annotation" o jsonAnn) <|> defaultAnn
+  o <- Json.toJObject j
+  tag <- Json.underKey "tag" Json.toString o
+  a <- (Json.underKey "annotation" jsonAnn o) <|> defaultAnn
   let
-    contents :: forall x. (JSON -> Either String x) -> Either String x
-    contents = underRequiredKey "contents" o
+    contents :: forall x. (Json -> Either Json.DecodeError x) -> Either Json.DecodeError x
+    contents f = Json.underKey "contents" f o
   case tag of
     "TUnknown" ->
-      TUnknown a <$> (contents toInt)
+      TUnknown a <$> (contents Json.toInt)
     "TypeVar" ->
-      TypeVar a <$> (contents toString)
+      TypeVar a <$> (contents Json.toString)
     "TypeLevelString" ->
       TypeLevelString a <$> (contents jsonPSString)
     "TypeLevelInt" ->
-      TypeLevelInt a <$> (contents toInt)
+      TypeLevelInt a <$> (contents Json.toInt)
     "TypeWildcard" -> do
       TypeWildcard a <$> ((contents jsonWildcardData) <|> pure UnnamedWildcard)
     "TypeConstructor" ->
@@ -207,58 +206,59 @@ jsonType' defaultAnn jsonAnn j = do
     "TypeOp" ->
       TypeOp a <$> (contents $ jsonQualified jsonOpName)
     "TypeApp" -> do
-      contents $ toArray2 go go (TypeApp a)
+      contents $ Json.toArray2 go go (TypeApp a)
     "KindApp" -> do
-      contents $ toArray2 go go (KindApp a)
+      contents $ Json.toArray2 go go (KindApp a)
     "ForAll" -> do
       let
-        asObject = do
-          { v, i, k, t, s } <- contents $ toRecord
-            { v: toRequiredRename "visibility" jsonTypeVarVisibility
-            , i: toRequiredRename "identifier" toString
-            , k: toOptionDefaultRename "kind" Nothing $ toNullNothingOrJust go
-            , t: toRequiredRename "type" go
-            , s: toRequiredRename "skolem" $ toNullNothingOrJust jsonSkolemScope
+        asObject contentsJson = do
+          { v, i, k, t, s } <- Json.toRecord
+            { v: Json.toRequiredRename "visibility" jsonTypeVarVisibility
+            , i: Json.toRequiredRename "identifier" Json.toString
+            , k: Json.toOptionDefaultRename "kind" Nothing $ Json.toNullNothingOrJust go
+            , t: Json.toRequiredRename "type" go
+            , s: Json.toRequiredRename "skolem" $ Json.toNullNothingOrJust jsonSkolemScope
             }
+            contentsJson
           pure $ ForAll a v i k t s
 
-        withoutMbKind = do
-          contents $ toArray3 toString go (toNullNothingOrJust jsonSkolemScope) \i t s ->
+        withoutMbKind contentsJson = do
+          contentsJson # Json.toArray3 Json.toString go (Json.toNullNothingOrJust jsonSkolemScope) \i t s ->
             ForAll a TypeVarInvisible i Nothing t s
 
-        withMbKind = do
-          contents $ toArray4 toString (toNullNothingOrJust go) go (toNullNothingOrJust jsonSkolemScope) \i k t s ->
+        withMbKind contentsJson = do
+          contentsJson # Json.toArray4 Json.toString (Json.toNullNothingOrJust go) go (Json.toNullNothingOrJust jsonSkolemScope) \i k t s ->
             ForAll a TypeVarInvisible i k t s
-      asObject <|> withMbKind <|> withoutMbKind
-    "ConstrainedType" -> do
-      contents $ toArray2 (jsonConstraint' defaultAnn jsonAnn) go (ConstrainedType a)
+      contents ((asObject `Json.altAccumulateLazy` withMbKind) `altAccumulateLazy` withoutMbKind)
+    "ConstrainedType" ->
+      contents $ Json.toArray2 (jsonConstraint' defaultAnn jsonAnn) go (ConstrainedType a)
     "Skolem" -> do
-      contents $ toArray4 toString (toNullNothingOrJust go) toInt jsonSkolemScope (Skolem a)
+      contents $ Json.toArray4 Json.toString (Json.toNullNothingOrJust go) Json.toInt jsonSkolemScope (Skolem a)
     "REmpty" ->
       pure $ REmpty a
     "RCons" -> do
-      contents $ toArray3 (jsonLabel) go go (RCons a)
+      contents $ Json.toArray3 (jsonLabel) go go (RCons a)
     "KindedType" -> do
-      contents $ toArray2 go go (KindedType a)
+      contents $ Json.toArray2 go go (KindedType a)
     "BinaryNoParensType" -> do
-      contents $ toArray3 go go go (BinaryNoParensType a)
+      contents $ Json.toArray3 go go go (BinaryNoParensType a)
     "ParensInType" -> do
       ParensInType a <$> (contents go)
     -- Backwards compatibility for kinds
     -- See https://github.com/purescript/purescript/pull/3779/files#diff-870a1f93bcc1630036804836b97cff8471bfaeb781b70545aea51343786085a5
     "KUnknown" ->
-      TUnknown a <$> (contents toInt)
+      TUnknown a <$> (contents Json.toInt)
     "Row" ->
       TypeApp a (TypeConstructor a C.tyRow) <$> (contents go)
     "FunKind" -> do
-      contents $ toArray2 go go \b c ->
+      contents $ Json.toArray2 go go \b c ->
         TypeApp a (TypeApp a (TypeConstructor a C.tyFunction) b) c
     "NamedKind" ->
       TypeConstructor a <$> (contents $ jsonQualified jsonProperName)
     str ->
-      Left $ "Unexpected value for `declType`: " <> str
+      Left $ Json.DecodeError $ "Unexpected value for `declType`: " <> str
   where
-  go :: JSON -> Either String (Type a)
+  go :: Json -> Either Json.DecodeError (Type a)
   go = jsonType' defaultAnn jsonAnn
 
 -- | Additional data relevant to type class constraints
@@ -270,16 +270,16 @@ derive instance Generic ConstraintData _
 instance Show ConstraintData where
   show x = genericShow x
 
-constraintDataJSON :: ConstraintData -> JSON
+constraintDataJSON :: ConstraintData -> Json
 constraintDataJSON = case _ of
   PartialConstraintData bs trunc ->
-    fromJoSingleton "contents" $ fromArray2
-      (fromArray (fromArray JSON.fromString) bs)
-      (JSON.fromBoolean trunc)
+    Json.fromObjSingleton "contents" $ Json.fromArray2
+      (Json.fromArray (Json.fromArray Json.fromString) bs)
+      (Json.fromBoolean trunc)
 
-jsonConstraintData :: JSON -> Either String ConstraintData
-jsonConstraintData = map _.contents <<< toRecord
-  { contents: toRequired $ toArray2 (toArray (toArray toString)) toBoolean PartialConstraintData
+jsonConstraintData :: Json -> Either Json.DecodeError ConstraintData
+jsonConstraintData = map _.contents <<< Json.toRecord
+  { contents: Json.toRequired $ Json.toArray2 (Json.toArray (Json.toArray Json.toString)) Json.toBoolean PartialConstraintData
   }
 
 type SourceConstraint = Constraint SourceAnn
@@ -301,30 +301,28 @@ derive instance Traversable Constraint
 instance Show a => Show (Constraint a) where
   show x = genericShow x
 
-constraintJSON :: forall a. (a -> JSON) -> Constraint a -> JSON
-constraintJSON annJSON = unwrap >>>
-  fromRecord
-    { ann: fromRequiredRename "constraintAnn" annJSON
-    , class: fromRequiredRename "constraintClass" $ qualifiedJSON properNameJSON
-    , kindArgs: fromRequiredRename "constraintKindArgs" $ fromArray $ typeJSON annJSON
-    , args: fromRequiredRename "constraintArgs" $ fromArray $ typeJSON annJSON
-    , data: fromRequiredRename "constraintData" $ fromNullOrJust constraintDataJSON
-    }
+constraintJSON :: forall a. (a -> Json) -> Constraint a -> Json
+constraintJSON annJSON = Json.fromRecordN Constraint
+  { ann: Json.fromRequiredRename "constraintAnn" annJSON
+  , class: Json.fromRequiredRename "constraintClass" $ qualifiedJSON properNameJSON
+  , kindArgs: Json.fromRequiredRename "constraintKindArgs" $ Json.fromArray $ typeJSON annJSON
+  , args: Json.fromRequiredRename "constraintArgs" $ Json.fromArray $ typeJSON annJSON
+  , data: Json.fromRequiredRename "constraintData" $ Json.fromNullNothingOrJust constraintDataJSON
+  }
 
-jsonSourceConstraint :: (JSON -> Either String SourceAnn) -> JSON -> Either String (Constraint SourceAnn)
+jsonSourceConstraint :: (Json -> Either Json.DecodeError SourceAnn) -> Json -> Either Json.DecodeError (Constraint SourceAnn)
 jsonSourceConstraint jsonAnn = jsonConstraint' (pure nullSourceAnn) jsonAnn
 
-jsonConstraintUnit :: (JSON -> Either String Unit) -> JSON -> Either String (Constraint Unit)
+jsonConstraintUnit :: (Json -> Either Json.DecodeError Unit) -> Json -> Either Json.DecodeError (Constraint Unit)
 jsonConstraintUnit jsonAnn = jsonConstraint' (pure unit) jsonAnn
 
-jsonConstraint' :: forall a. Either String a -> (JSON -> Either String a) -> JSON -> Either String (Constraint a)
-jsonConstraint' defaultAnn jsonAnn = map Constraint <<< toRecord
-  { ann: ToRecordCodec $ Right $ NEA.singleton $ Tuple (Just "constraintAnn") $ \key mbValue ->
-      ((note ("missing key " <> key <> ", ") mbValue) >>= jsonAnn) <|> defaultAnn
-  , class: toRequiredRename "constraintClass" $ jsonQualified jsonProperName
-  , kindArgs: toOptionDefaultRename "constraintKindArgs" [] $ toArray $ jsonType' defaultAnn jsonAnn
-  , args: toRequiredRename "constraintArgs" $ toArray $ jsonType' defaultAnn jsonAnn
-  , data: toRequiredRename "constraintData" $ toNullNothingOrJust jsonConstraintData
+jsonConstraint' :: forall a. Either Json.DecodeError a -> (Json -> Either Json.DecodeError a) -> Json -> Either Json.DecodeError (Constraint a)
+jsonConstraint' defaultAnn jsonAnn = toRecordN Constraint
+  { ann: ToProp $ mkFn2 \lookup _ -> (maybe defaultAnn jsonAnn $ lookup "constraintAnn") <|> defaultAnn
+  , class: Json.toRequiredRename "constraintClass" $ jsonQualified jsonProperName
+  , kindArgs: Json.toOptionDefaultRename "constraintKindArgs" [] $ Json.toArray $ jsonType' defaultAnn jsonAnn
+  , args: Json.toRequiredRename "constraintArgs" $ Json.toArray $ jsonType' defaultAnn jsonAnn
+  , data: Json.toRequiredRename "constraintData" $ Json.toNullNothingOrJust jsonConstraintData
   }
 
 newtype RowListItem a = RowListItem

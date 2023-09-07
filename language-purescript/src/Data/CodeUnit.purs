@@ -2,9 +2,11 @@ module Data.CodeUnit where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as Json
 import Control.Monad.ST.Internal (while)
 import Control.Monad.ST.Internal as ST
 import Control.Monad.ST.Internal as STRef
+import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Array.ST as STA
 import Data.Char (toCharCode)
@@ -20,9 +22,6 @@ import Data.String as SCP
 import Data.String as String
 import Data.String.CodeUnits as SCU
 import Data.Tuple (Tuple(..))
-import JSON (JSON)
-import JSON as JSON
-import JSON.ExtraCodecs (toInt)
 import Partial.Unsafe (unsafePartial)
 
 newtype CodeUnit = CodeUnit Int
@@ -45,11 +44,11 @@ instance BoundedEnum CodeUnit where
     | otherwise = Nothing
   fromEnum (CodeUnit c) = c
 
-codeUnitJSON :: CodeUnit -> JSON
-codeUnitJSON = fromEnum >>> JSON.fromInt
+codeUnitJSON :: CodeUnit -> Json
+codeUnitJSON = fromEnum >>> Json.fromInt
 
-jsonCodeUnit :: JSON -> Either String CodeUnit
-jsonCodeUnit = toInt >=> toEnum >>> note "Value out of bounds for CodeUnit (0 <= x <= 65535)"
+jsonCodeUnit :: Json -> Either Json.DecodeError CodeUnit
+jsonCodeUnit = Json.toInt >=> toEnum >>> note (Json.DecodeError "Value out of bounds for CodeUnit (0 <= x <= 65535)")
 
 unpairBE :: CodeUnit -> Array Int
 unpairBE c = [ highByte c, lowByte c ]

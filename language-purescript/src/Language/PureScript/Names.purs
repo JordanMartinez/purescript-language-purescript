@@ -2,9 +2,11 @@ module Language.PureScript.Names where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as Json
 import Control.Alt ((<|>))
+import Data.Argonaut.Core (Json)
 import Data.Array as Array
-import Data.Either (Either, note)
+import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
@@ -12,10 +14,6 @@ import Data.Show.Generic (genericShow)
 import Data.String (Pattern(..))
 import Data.String as String
 import Data.Traversable (class Foldable, class Traversable)
-import JSON (JSON)
-import JSON as JSON
-import JSON.ExtraCodecs (fromArray, fromArray2, fromJoSingleton, fromNullOrJust, toArray, toArray2, toInt, toJObject, toJoSingleton, toNullDefaultOrA, toNullNothingOrJust, toSingleton, toString)
-import JSON.Object as JO
 import Language.PureScript.AST.SourcePos (SourcePos(..), jsonSourcePos, sourcePosJSON)
 import Safe.Coerce (coerce)
 
@@ -50,16 +48,16 @@ derive instance Generic InternalIdentData _
 instance Show InternalIdentData where
   show x = genericShow x
 
-internalIdentDataJSON :: InternalIdentData -> JSON
+internalIdentDataJSON :: InternalIdentData -> Json
 internalIdentDataJSON = case _ of
-  RuntimeLazyFactory -> fromJoSingleton "RuntimeLazyFactory" JSON.null
-  Lazy str -> fromJoSingleton "Lazy" (JSON.fromString str)
+  RuntimeLazyFactory -> Json.fromObjSingleton "RuntimeLazyFactory" Json.fromJNull
+  Lazy str -> Json.fromObjSingleton "Lazy" (Json.fromString str)
 
-jsonInternalIdentData :: JSON -> Either String InternalIdentData
+jsonInternalIdentData :: Json -> Either Json.DecodeError InternalIdentData
 jsonInternalIdentData j = runtimeLazy <|> lazyStr
   where
-  runtimeLazy = toJoSingleton "RuntimeLazyFactory" (const $ pure RuntimeLazyFactory) j
-  lazyStr = toJoSingleton "Lazy" (\j' -> note "missing key Lazy." j' >>= toString >>> map Lazy) j
+  runtimeLazy = Json.toObjSingleton "RuntimeLazyFactory" (const $ pure RuntimeLazyFactory) j
+  lazyStr = Json.toObjSingleton "Lazy" (Json.toString >>> map Lazy) j
 
 -- | Names for value identifiers
 data Ident
@@ -78,23 +76,21 @@ derive instance Generic Ident _
 instance Show Ident where
   show x = genericShow x
 
-identJSON :: Ident -> JSON
-identJSON = JSON.fromJObject <<< case _ of
-  Ident str -> JO.singleton "Ident" $ JSON.fromString str
-  GenIdent mbStr i -> JO.singleton "GenIdent"
-    $ fromArray2 (fromNullOrJust JSON.fromString mbStr) (JSON.fromInt i)
-  UnusedIdent -> JO.singleton "UnusedIdent" JSON.null
-  InternalIdent iid -> JO.singleton "InternalIdent" $ internalIdentDataJSON iid
+identJSON :: Ident -> Json
+identJSON = case _ of
+  Ident str -> Json.fromObjSingleton "Ident" $ Json.fromString str
+  GenIdent mbStr i -> Json.fromObjSingleton "GenIdent"
+    $ Json.fromArray2 (Json.fromNullNothingOrJust Json.fromString mbStr) (Json.fromInt i)
+  UnusedIdent -> Json.fromObjSingleton "UnusedIdent" Json.fromJNull
+  InternalIdent iid -> Json.fromObjSingleton "InternalIdent" $ internalIdentDataJSON iid
 
-jsonIdent :: JSON -> Either String Ident
-jsonIdent = toJObject >=> rest
+jsonIdent :: Json -> Either Json.DecodeError Ident
+jsonIdent j = jIdent <|> jGenIdent <|> jUnusedIdent <|> jInternalIdent
   where
-  rest jo = jIdent <|> jGenIdent <|> jUnusedIdent <|> jInternalIdent
-    where
-    jIdent = toSingleton "Ident" (toString >>> map Ident) jo
-    jGenIdent = toSingleton "GenIdent" (toArray2 (toNullNothingOrJust toString) toInt GenIdent) jo
-    jUnusedIdent = toSingleton "UnusedIdent" (const $ pure UnusedIdent) jo
-    jInternalIdent = toSingleton "InternalIdent" (jsonInternalIdentData >>> map InternalIdent) jo
+  jIdent = Json.toObjSingleton "Ident" (Json.toString >>> map Ident) j
+  jGenIdent = Json.toObjSingleton "GenIdent" (Json.toArray2 (Json.toNullNothingOrJust Json.toString) Json.toInt GenIdent) j
+  jUnusedIdent = Json.toObjSingleton "UnusedIdent" (const $ pure UnusedIdent) j
+  jInternalIdent = Json.toObjSingleton "InternalIdent" (jsonInternalIdentData >>> map InternalIdent) j
 
 -- | Operator alias names.
 newtype OpName :: OpNameType -> Type
@@ -107,11 +103,11 @@ derive instance Generic (OpName a) _
 instance Show (OpName a) where
   show x = genericShow x
 
-opNameJSON :: forall a. OpName a -> JSON
-opNameJSON = unwrap >>> JSON.fromString
+opNameJSON :: forall a. OpName a -> Json
+opNameJSON = unwrap >>> Json.fromString
 
-jsonOpName :: forall a. JSON -> Either String (OpName a)
-jsonOpName = toString >>> coerce
+jsonOpName :: forall a. Json -> Either Json.DecodeError (OpName a)
+jsonOpName = Json.toString >>> coerce
 
 data OpNameType
 
@@ -131,11 +127,11 @@ derive instance Generic (ProperName a) _
 instance Show (ProperName a) where
   show x = genericShow x
 
-properNameJSON :: forall a. ProperName a -> JSON
-properNameJSON = unwrap >>> JSON.fromString
+properNameJSON :: forall a. ProperName a -> Json
+properNameJSON = unwrap >>> Json.fromString
 
-jsonProperName :: forall a. JSON -> Either String (ProperName a)
-jsonProperName = toString >>> coerce
+jsonProperName :: forall a. Json -> Either Json.DecodeError (ProperName a)
+jsonProperName = Json.toString >>> coerce
 
 data ProperNameType
 
@@ -153,11 +149,11 @@ derive instance Generic ModuleName _
 instance Show ModuleName where
   show x = genericShow x
 
-moduleNameJSON :: ModuleName -> JSON
-moduleNameJSON = unwrap >>> String.split (Pattern ".") >>> fromArray JSON.fromString
+moduleNameJSON :: ModuleName -> Json
+moduleNameJSON = unwrap >>> String.split (Pattern ".") >>> Json.fromArray Json.fromString
 
-jsonModuleName :: JSON -> Either String ModuleName
-jsonModuleName = toArray toString >>> map (Array.intercalate "." >>> wrap)
+jsonModuleName :: Json -> Either Json.DecodeError ModuleName
+jsonModuleName = Json.toArray Json.toString >>> map (Array.intercalate "." >>> wrap)
 
 data QualifiedBy
   = BySourcePos SourcePos
@@ -174,20 +170,20 @@ byNullSourcePos = BySourcePos (SourcePos { line: 0, column: 0 })
 
 -- | Note: this instance isn't defined in the PureScript compiler.
 -- | as it appears within the instance of `Qualified a`.
-qualifiedByJSON :: QualifiedBy -> JSON
+qualifiedByJSON :: QualifiedBy -> Json
 qualifiedByJSON = case _ of
   ByModuleName mn -> moduleNameJSON mn
   BySourcePos ss -> sourcePosJSON ss
 
 -- | Note: this instance isn't defined in the PureScript compiler.
 -- | as it appears within the instance of `Qualified a`.
-jsonQualifiedBy :: JSON -> Either String QualifiedBy
+jsonQualifiedBy :: Json -> Either Json.DecodeError QualifiedBy
 jsonQualifiedBy j =
   byModule j <|> bySourcePos <|> byMaybeModuleName
   where
   byModule j' = ByModuleName <$> jsonModuleName j'
   bySourcePos = BySourcePos <$> jsonSourcePos j
-  byMaybeModuleName = toNullDefaultOrA byNullSourcePos byModule j
+  byMaybeModuleName = Json.toNullDefaultOrA byNullSourcePos byModule j
 
 -- |
 -- A qualified name, i.e. a name with an optional module name
@@ -204,8 +200,8 @@ derive instance Functor Qualified
 derive instance Foldable Qualified
 derive instance Traversable Qualified
 
-qualifiedJSON :: forall a. (a -> JSON) -> Qualified a -> JSON
-qualifiedJSON f (Qualified by a) = fromArray2 (qualifiedByJSON by) (f a)
+qualifiedJSON :: forall a. (a -> Json) -> Qualified a -> Json
+qualifiedJSON f (Qualified by a) = Json.fromArray2 (qualifiedByJSON by) (f a)
 
-jsonQualified :: forall a. (JSON -> Either String a) -> JSON -> Either String (Qualified a)
-jsonQualified f = toArray2 jsonQualifiedBy f Qualified
+jsonQualified :: forall a. (Json -> Either Json.DecodeError a) -> Json -> Either Json.DecodeError (Qualified a)
+jsonQualified f = Json.toArray2 jsonQualifiedBy f Qualified

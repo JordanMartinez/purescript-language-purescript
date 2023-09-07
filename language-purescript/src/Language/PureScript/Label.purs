@@ -2,10 +2,11 @@ module Language.PureScript.Label where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as Json
+import Data.Argonaut.Core (Json)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype, unwrap)
-import JSON (JSON)
 import Language.PureScript.PSString (PSString, jsonPSString, psStringJSON)
 import Safe.Coerce (coerce)
 
@@ -23,9 +24,9 @@ derive newtype instance Show Label
 derive newtype instance Semigroup Label
 derive newtype instance Monoid Label
 
-labelJSON :: Label -> JSON
+labelJSON :: Label -> Json
 labelJSON = unwrap >>> psStringJSON
 
-jsonLabel :: JSON -> Either String Label
+jsonLabel :: Json -> Either Json.DecodeError Label
 jsonLabel = coerce <<< jsonPSString
 

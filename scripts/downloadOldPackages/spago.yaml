@@ -1,6 +1,7 @@
 package:
   name: "scripts-download-old-packages"
   dependencies:
+    - argonaut-core
     - aff
     - arrays
     - console
@@ -8,7 +9,7 @@ package:
     - either
     - foldable-traversable
     - foreign-object
-    - json
+    - json-codecs
     - maybe
     - node-buffer
     - node-fs

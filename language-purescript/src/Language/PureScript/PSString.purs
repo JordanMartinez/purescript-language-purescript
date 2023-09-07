@@ -13,7 +13,9 @@ module Language.PureScript.PSString
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as Json
 import Control.Alt ((<|>))
+import Data.Argonaut.Core (Json)
 import Data.Array as Array
 import Data.Char (toCharCode)
 import Data.CodePoint.Unicode (generalCategory)
@@ -26,9 +28,6 @@ import Data.Nullable (Nullable, toMaybe)
 import Data.String (CodePoint, toCodePointArray)
 import Data.String as SCP
 import Data.String.CodeUnits as SCU
-import JSON (JSON)
-import JSON as JSON
-import JSON.ExtraCodecs (fromArray, toArray, toString)
 import Partial.Unsafe (unsafePartial)
 
 -- | An array of UTF-16BE code units
@@ -45,16 +44,16 @@ derive newtype instance Monoid PSString
 instance Show PSString where
   show = show <<< codePoints
 
-psStringJSON :: PSString -> JSON
+psStringJSON :: PSString -> Json
 psStringJSON psStr = case decodeString psStr of
-  Just str -> JSON.fromString str
-  Nothing -> fromArray codeUnitJSON $ toUTF16CodeUnits psStr
+  Just str -> Json.fromString str
+  Nothing -> Json.fromArray codeUnitJSON $ toUTF16CodeUnits psStr
 
-jsonPSString :: JSON -> Either String PSString
+jsonPSString :: Json -> Either Json.DecodeError PSString
 jsonPSString j = asString <|> asCodeUnitArray
   where
-  asString = mkPSString <$> toString j
-  asCodeUnitArray = PSString <$> toArray jsonCodeUnit j
+  asString = mkPSString <$> Json.toString j
+  asCodeUnitArray = PSString <$> Json.toArray jsonCodeUnit j
 
 mkPSString :: String -> PSString
 mkPSString = PSString <<< Array.concatMap encodeUtf16BE <<< toCodePointArray

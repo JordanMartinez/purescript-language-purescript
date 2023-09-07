@@ -2,6 +2,9 @@ module Scripts.DownloadOldPackages where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as J
+import Data.Argonaut.Core (Json, stringifyWithIndent)
+import Data.Argonaut.Parser (jsonParser)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Map (Map)
@@ -22,10 +25,6 @@ import Effect.Class.Console (log)
 import Effect.Class.Console as Console
 import Effect.Ref as Ref
 import Foreign.Object as Object
-import JSON (JSON)
-import JSON as J
-import JSON as JSON
-import JSON.Object as JO
 import Node.Buffer as Buffer
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff as FSA
@@ -87,20 +86,21 @@ main = launchAff_ do
   getCachedRepos :: Aff (Map String (Set (Tuple String String)))
   getCachedRepos = do
     cache <- FSA.readTextFile UTF8 cacheFile
-    case J.parse cache of
+    case jsonParser cache of
       Left e -> do
         Console.error $ "cache failed to parse " <> e
         pure Map.empty
       Right j -> case decodeRepoVersions j of
-        Nothing -> do
+        Left e -> do
           Console.error "cache failed to decode"
+          Console.error $ J.printDecodeError e
           pure Map.empty
-        Just a -> do
+        Right a -> do
           Console.log "cache recovered"
           pure a
 
   writeCache :: Map String (Set (Tuple String String)) -> Aff Unit
-  writeCache = FSA.writeTextFile UTF8 cacheFile <<< J.printIndented <<< encodeRepoVersions
+  writeCache = FSA.writeTextFile UTF8 cacheFile <<< stringifyWithIndent 2 <<< encodeRepoVersions
 
   getVersionUrls :: String -> Aff (Maybe (Set (Tuple String String)))
   getVersionUrls repo = do
@@ -110,41 +110,41 @@ main = launchAff_ do
         Console.error $ "For repo " <> repo <> " - request error: " <> err
         pure Nothing
       Right c ->
-        case J.parse c of
+        case jsonParser c of
           Left e -> do
             Console.error $ "For repo " <> repo <> " - JSON parse error: " <> e
             pure Nothing
           Right j -> do
             case decodeLibVersions j of
-              Nothing -> do
+              Left e -> do
                 Console.error $ "For repo " <> repo <> " - json decode error"
+                Console.error $ J.printDecodeError e
                 pure Nothing
-              Just a -> do
+              Right a -> do
                 Console.log $ "For repo " <> repo <> " - success"
                 Console.log $ show a
                 pure $ Just a
 
-decodeLibVersions :: JSON -> Maybe (Set (Tuple String String))
-decodeLibVersions = J.toArray >=> traverse convert >>> map Set.fromFoldable
+decodeLibVersions :: Json -> Either J.DecodeError (Set (Tuple String String))
+decodeLibVersions = J.toArray convert >>> map Set.fromFoldable
   where
   convert j = do
     obj <- J.toJObject j
-    name <- JO.lookup "name" obj >>= J.toString
-    downloadUrl <- JO.lookup "download_url" obj >>= J.toString
+    name <- J.underKey "name" J.toString obj
+    downloadUrl <- J.underKey "download_url" J.toString obj
     pure $ Tuple name downloadUrl
 
-encodeRepoVersions :: Map String (Set (Tuple String String)) -> JSON
-encodeRepoVersions = Map.toUnfoldable >>> map (map Set.toUnfoldable) >>> encodeArrayAsObj (encodeArrayAsObj JSON.fromString)
+encodeRepoVersions :: Map String (Set (Tuple String String)) -> Json
+encodeRepoVersions = Map.toUnfoldable >>> map (map Set.toUnfoldable) >>> encodeArrayAsObj (encodeArrayAsObj J.fromString)
 
-encodeArrayAsObj :: forall a. (a -> JSON) -> Array (Tuple String a) -> JSON
-encodeArrayAsObj encodeA = JSON.fromJObject <<< flip Array.foldl JO.empty \acc (Tuple k v) ->
-  JO.insert k (encodeA v) acc
+encodeArrayAsObj :: forall a. (a -> Json) -> Array (Tuple String a) -> Json
+encodeArrayAsObj encodeA = J.fromPropArray <<< map (map encodeA)
 
-decodeRepoVersions :: JSON -> Maybe (Map String (Set (Tuple String String)))
-decodeRepoVersions = decodeObjAsArray (decodeObjAsArray JSON.toString) >>> map ((map (map Set.fromFoldable)) >>> (Map.fromFoldable :: Array _ -> _))
+decodeRepoVersions :: Json -> Either J.DecodeError (Map String (Set (Tuple String String)))
+decodeRepoVersions = decodeObjAsArray (decodeObjAsArray J.toString) >>> map ((map (map Set.fromFoldable)) >>> (Map.fromFoldable :: Array _ -> _))
 
-decodeObjAsArray :: forall a. (JSON -> Maybe a) -> JSON -> Maybe (Array (Tuple String a))
-decodeObjAsArray decodeA = JSON.toJObject >>> map JO.toUnfoldable >=> traverse (traverse decodeA)
+decodeObjAsArray :: forall a. (Json -> Either J.DecodeError a) -> Json -> Either J.DecodeError (Array (Tuple String a))
+decodeObjAsArray decodeA = J.toJObject >>> map Object.toUnfoldable >=> traverse (traverse decodeA)
 
 repos :: Array String
 repos =

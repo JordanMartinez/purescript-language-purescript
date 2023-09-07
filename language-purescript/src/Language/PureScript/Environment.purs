@@ -2,11 +2,10 @@ module Language.PureScript.Environment where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as Json
+import Data.Argonaut.Core (Json)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
-import JSON (JSON)
-import JSON as JSON
-import JSON.ExtraCodecs (toString)
 import Language.PureScript.Constants.Prim as CPrim
 import Language.PureScript.Types (SourceType, srcTypeConstructor)
 
@@ -24,14 +23,14 @@ showDataDeclType :: DataDeclType -> String
 showDataDeclType Data = "data"
 showDataDeclType Newtype = "newtype"
 
-dataDeclTypeJSON :: DataDeclType -> JSON
-dataDeclTypeJSON = JSON.fromString <<< showDataDeclType
+dataDeclTypeJSON :: DataDeclType -> Json
+dataDeclTypeJSON = Json.fromString <<< showDataDeclType
 
-jsonDataDeclType :: JSON -> Either String DataDeclType
-jsonDataDeclType = toString >=> case _ of
+jsonDataDeclType :: Json -> Either Json.DecodeError DataDeclType
+jsonDataDeclType = Json.toString >=> case _ of
   "data" -> pure Data
   "newtype" -> pure Newtype
-  str -> Left $ "Expected 'data' or 'newtype' but got '" <> str <> "'."
+  str -> Left $ Json.DecodeError $ "Expected 'data' or 'newtype' but got '" <> str <> "'."
 
 kindType :: SourceType
 kindType = srcTypeConstructor CPrim.tyType

@@ -2,12 +2,12 @@ module Language.PureScript.Role where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value (DecodeError(..), toString)
+import Codec.Json.Unidirectional.Value as Json
+import Data.Argonaut.Core (Json)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
-import JSON (JSON)
-import JSON as JSON
-import JSON.ExtraCodecs (toString)
 
 -- |
 -- The role of a type constructor's parameter.
@@ -22,15 +22,15 @@ derive instance Generic Role _
 instance Show Role where
   show x = genericShow x
 
-roleJSON :: Role -> JSON
-roleJSON = JSON.fromString <<< case _ of
+roleJSON :: Role -> Json
+roleJSON = Json.fromString <<< case _ of
   Representational -> "Representational"
   Nominal -> "Nominal"
   Phantom -> "Phantom"
 
-jsonRole :: JSON -> Either String Role
+jsonRole :: Json -> Either Json.DecodeError Role
 jsonRole = toString >=> case _ of
   "Representational" -> pure Representational
   "Nominal" -> pure Nominal
   "Phantom" -> pure Phantom
-  str -> Left $ "Expected 'Representational', 'Nominal', or 'Phantom', but got '" <> str <> "'."
+  str -> Left $ (DecodeError $ "Expected 'Representational', 'Nominal', or 'Phantom', but got '" <> str <> "'.")

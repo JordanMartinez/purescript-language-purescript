@@ -2,6 +2,9 @@ module Test.Main where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as Json
+import Data.Argonaut.Core (Json)
+import Data.Argonaut.Parser (jsonParser)
 import Data.Either (Either(..))
 import Data.List (List(..))
 import Data.Traversable (for_)
@@ -10,8 +13,6 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Class.Console as Console
-import JSON (JSON)
-import JSON as JSON
 import Language.PureScript.Docs.Types (jsonDocModule, jsonGithubUser, jsonPackage)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff as FSA
@@ -71,15 +72,15 @@ runPursuitTestsPackageTest = do
   where
   jsonCompatDir = Path.concat [ "language-purescript", "test", "json-compat" ]
 
-decodeFile :: forall a. (JSON -> Either String a) -> FilePath -> String -> Aff Unit
+decodeFile :: forall a. (Json -> Either Json.DecodeError a) -> FilePath -> String -> Aff Unit
 decodeFile codec file ref = do
-  errOrJson <- map JSON.parse $ FSA.readTextFile UTF8 file
+  errOrJson <- map jsonParser $ FSA.readTextFile UTF8 file
   case errOrJson of
     Left e ->
       Console.error $ "JSON parse error - " <> ref <> ": " <> e
     Right a -> do
       case codec a of
         Left e ->
-          Console.error $ "JSON decode error - " <> ref <> " Error:\n\t" <> e
+          Console.error $ "JSON decode error - " <> ref <> " Error:\n" <> Json.printDecodeError e
         Right _ ->
           Console.log $ "Successfully decoded path: " <> ref

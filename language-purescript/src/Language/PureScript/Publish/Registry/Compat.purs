@@ -2,7 +2,9 @@ module Language.PureScript.Publish.Registry.Compat where
 
 import Prelude
 
+import Codec.Json.Unidirectional.Value as Json
 import Control.Alt ((<|>))
+import Data.Argonaut.Core (Json)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.Map (Map)
@@ -11,9 +13,7 @@ import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
 import Data.Traversable (traverse)
-import JSON (JSON)
-import JSON.ExtraCodecs (toJObject, toOption, toRecord, toRecordN, toRequired, toString, underRequiredKey)
-import JSON.Object as JO
+import Foreign.Object as Object
 
 -- | A partial representation of the purs.json manifest format, including only
 -- | the fields required for publishing.
@@ -38,29 +38,29 @@ derive instance Generic PursJson _
 instance Show PursJson where
   show x = genericShow x
 
-jsonPursJson :: JSON -> Either String PursJson
-jsonPursJson = toRecordN PursJson
-  { name: toRequired toString
-  , description: toOption toString
-  , license: toRequired toString
-  , dependencies: toRequired $
-      toJObject
-        >>> map JO.toUnfoldable
-        >=> (traverse (traverse toString) :: Array _ -> _)
+jsonPursJson :: Json -> Either Json.DecodeError PursJson
+jsonPursJson = Json.toRecordN PursJson
+  { name: Json.toRequired Json.toString
+  , description: Json.toOption Json.toString
+  , license: Json.toRequired Json.toString
+  , dependencies: Json.toRequired $
+      Json.toJObject
+        >>> map Object.toUnfoldable
+        >=> (traverse (traverse Json.toString) :: Array _ -> _)
           >>> map Map.fromFoldable
-  , location: toRequired jsonOwnerRepoOrGitUrl
+  , location: Json.toRequired jsonOwnerRepoOrGitUrl
   }
   where
   jsonOwnerRepoOrGitUrl j = asOwnerRepo j <|> asGitUrl j
     where
     asOwnerRepo =
-      toRecord
-        { githubOwner: toRequired toString
-        , githubRepo: toRequired toString
+      Json.toRecord
+        { githubOwner: Json.toRequired Json.toString
+        , githubRepo: Json.toRequired Json.toString
         }
         >>> map \{ githubOwner, githubRepo } -> "https://github.com/" <> githubOwner <> "/" <> githubRepo <> ".git"
 
-    asGitUrl = toJObject >=> \jo -> underRequiredKey "gitUrl" jo toString
+    asGitUrl = Json.toJObject >=> Json.underKey "gitUrl" Json.toString
 
 data PursJsonError = MalformedLocationField
 

@@ -155,18 +155,7 @@ jsonRenderedCode = coerce <<< Json.toArray jsonRenderedCodeElement
 type FixityAlias = Qualified (Either (ProperName TypeName) (Either Ident (ProperName ConstructorName)))
 
 fixityAliasJSON :: FixityAlias -> Json
-fixityAliasJSON = qualifiedJSON $ eitherJSON properNameJSON $ eitherJSON identJSON properNameJSON
-  where
-  eitherJSON :: forall a b. (a -> Json) -> (b -> Json) -> Either a b -> Json
-  eitherJSON l' r' = case _ of
-    Left l -> Json.fromObjSingleton "Left" $ l' l
-    Right r -> Json.fromObjSingleton "Right" $ r' r
+fixityAliasJSON = qualifiedJSON $ Json.fromEitherSingle properNameJSON $ Json.fromEitherSingle identJSON properNameJSON
 
 jsonFixityAlias :: Json -> Either Json.DecodeError FixityAlias
-jsonFixityAlias = jsonQualified $ jsonEither jsonProperName $ jsonEither jsonIdent jsonProperName
-  where
-  jsonEither :: forall a b. (Json -> Either Json.DecodeError a) -> (Json -> Either Json.DecodeError b) -> Json -> Either Json.DecodeError (Either a b)
-  jsonEither l' r' j = left <|> right
-    where
-    left = Json.toObjSingleton "Left" (l' >>> map Left) j
-    right = Json.toObjSingleton "Right" (r' >>> map Right) j
+jsonFixityAlias = jsonQualified $ Json.toEitherSingle jsonProperName $ Json.toEitherSingle jsonIdent jsonProperName

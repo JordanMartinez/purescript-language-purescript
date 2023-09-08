@@ -124,11 +124,7 @@ jsonPackage minimumVersion jsonUploader j = do
                   Local _ -> Nothing
                   FromDep pkgName mn -> Just $ Tuple mn pkgName
 
-        case toModuleMap of
-          x@(Right _) -> x
-          Left e1 -> case toBookmarks unit of
-            x@(Right _) -> x
-            Left e2 -> Left $ J.accumulateErrors e1 e2
+        J.altAccumulateLazy toModuleMap toBookmarks
 
     , resolvedDependencies: J.toRequired $ J.toJObject >>> map Object.toUnfoldable >=> traverse (bitraverse (map (note $ J.DecodeError "Invalid package name") parsePackageName) jsonVersion)
     , github: J.toRequired $ J.toTuple jsonGithubUser jsonGithubRepo
@@ -253,7 +249,7 @@ jsonDocModule = J.toRecordN DocModule
   -- [(P.ModuleName, [Declaration])]. This should eventually be removed,
   -- possibly at the same time as the next breaking change to this Json format.
   jsonAsRexportModuleName :: Json -> Either J.DecodeError (InPackage ModuleName)
-  jsonAsRexportModuleName = J.altAccumulateLazy
+  jsonAsRexportModuleName = J.altAccumulate
     (jsonInPackage jsonModuleName)
     (map Local <$> jsonModuleName)
 

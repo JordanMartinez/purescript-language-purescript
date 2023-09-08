@@ -3,7 +3,7 @@ module Language.PureScript.Types where
 import Prelude
 import Prim hiding (Type, Constraint)
 
-import Codec.Json.Unidirectional.Value (ToProp(..), altAccumulateLazy, toRecordN)
+import Codec.Json.Unidirectional.Value (ToProp(..))
 import Codec.Json.Unidirectional.Value as Json
 import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json)
@@ -229,7 +229,7 @@ jsonType' defaultAnn jsonAnn j = do
         withMbKind contentsJson = do
           contentsJson # Json.toArray4 Json.toString (Json.toNullNothingOrJust go) go (Json.toNullNothingOrJust jsonSkolemScope) \i k t s ->
             ForAll a TypeVarInvisible i k t s
-      contents ((asObject `Json.altAccumulateLazy` withMbKind) `altAccumulateLazy` withoutMbKind)
+      contents ((asObject `Json.altAccumulate` withMbKind) `Json.altAccumulate` withoutMbKind)
     "ConstrainedType" ->
       contents $ Json.toArray2 (jsonConstraint' defaultAnn jsonAnn) go (ConstrainedType a)
     "Skolem" -> do
@@ -317,7 +317,7 @@ jsonConstraintUnit :: (Json -> Either Json.DecodeError Unit) -> Json -> Either J
 jsonConstraintUnit jsonAnn = jsonConstraint' (pure unit) jsonAnn
 
 jsonConstraint' :: forall a. Either Json.DecodeError a -> (Json -> Either Json.DecodeError a) -> Json -> Either Json.DecodeError (Constraint a)
-jsonConstraint' defaultAnn jsonAnn = toRecordN Constraint
+jsonConstraint' defaultAnn jsonAnn = Json.toRecordN Constraint
   { ann: ToProp $ mkFn2 \lookup _ -> (maybe defaultAnn jsonAnn $ lookup "constraintAnn") <|> defaultAnn
   , class: Json.toRequiredRename "constraintClass" $ jsonQualified jsonProperName
   , kindArgs: Json.toOptionDefaultRename "constraintKindArgs" [] $ Json.toArray $ jsonType' defaultAnn jsonAnn

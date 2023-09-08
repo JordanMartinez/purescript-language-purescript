@@ -77,7 +77,7 @@ fromPackageMeta = fromRecordN PackageMeta
   , devDependencies: fromOptionAssocArray unwrap fromVersionRange
   , resolutions: fromOptionAssocArray unwrap fromVersion
   , private: FromProp \b ->
-      if b then Just $ Tuple Nothing $ Json.fromBoolean b else Nothing
+      if b then Just { key: Nothing, insertionOrder: Nothing, value: Json.fromBoolean b } else Nothing
   }
 
 toPackageMeta :: Json -> Either Json.DecodeError PackageMeta

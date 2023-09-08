@@ -160,7 +160,7 @@ workspace:
         - tuples
     json-codecs:
       git: https://github.com/JordanMartinez/purescript-json-codecs.git
-      ref: e10f9b69efe5f7d6289d3b67815f25b206628cae
+      ref: v4.0.0
       dependencies:
         - argonaut-core
         - arrays

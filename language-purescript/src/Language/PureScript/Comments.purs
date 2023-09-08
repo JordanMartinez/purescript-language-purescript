@@ -2,9 +2,8 @@ module Language.PureScript.Comments where
 
 import Prelude
 
-import Codec.Json.Unidirectional.Value (toJObject, toString, underKey)
+import Codec.Json.Unidirectional.Value (altAccumulate, toObjSingleton, toString)
 import Codec.Json.Unidirectional.Value as Json
-import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
@@ -20,15 +19,13 @@ derive instance Generic Comment _
 instance Show Comment where
   show x = genericShow x
 
-commentJSON :: Comment -> Json
-commentJSON = case _ of
+fromComment :: Comment -> Json
+fromComment = case _ of
   LineComment str -> Json.fromObjSingleton "LineComment" (Json.fromString str)
   BlockComment str -> Json.fromObjSingleton "BlockComment" (Json.fromString str)
 
-jsonComment :: Json -> Either Json.DecodeError Comment
-jsonComment j = do
-  jo <- toJObject j
-  decodeLineComment jo <|> decodeBlockComment jo
+toComment :: Json -> Either Json.DecodeError Comment
+toComment = altAccumulate decodeLineComment decodeBlockComment
   where
-  decodeLineComment = underKey "LineComment" (toString >>> map LineComment)
-  decodeBlockComment = underKey "BlockComment" (toString >>> map BlockComment)
+  decodeLineComment = toObjSingleton "LineComment" (toString >>> map LineComment)
+  decodeBlockComment = toObjSingleton "BlockComment" (toString >>> map BlockComment)

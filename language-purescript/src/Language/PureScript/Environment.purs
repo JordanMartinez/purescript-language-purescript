@@ -23,11 +23,12 @@ showDataDeclType :: DataDeclType -> String
 showDataDeclType Data = "data"
 showDataDeclType Newtype = "newtype"
 
-dataDeclTypeJSON :: DataDeclType -> Json
-dataDeclTypeJSON = Json.fromString <<< showDataDeclType
+fromDataDeclType :: DataDeclType -> Json
 
-jsonDataDeclType :: Json -> Either Json.DecodeError DataDeclType
-jsonDataDeclType = Json.toString >=> case _ of
+fromDataDeclType = Json.fromString <<< showDataDeclType
+
+toDataDeclType :: Json -> Either Json.DecodeError DataDeclType
+toDataDeclType = Json.toString >=> case _ of
   "data" -> pure Data
   "newtype" -> pure Newtype
   str -> Left $ Json.DecodeError $ "Expected 'data' or 'newtype' but got '" <> str <> "'."

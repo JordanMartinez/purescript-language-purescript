@@ -22,14 +22,14 @@ derive instance Generic Role _
 instance Show Role where
   show x = genericShow x
 
-roleJSON :: Role -> Json
-roleJSON = Json.fromString <<< case _ of
+fromRole :: Role -> Json
+fromRole = Json.fromString <<< case _ of
   Representational -> "Representational"
   Nominal -> "Nominal"
   Phantom -> "Phantom"
 
-jsonRole :: Json -> Either Json.DecodeError Role
-jsonRole = toString >=> case _ of
+toRole :: Json -> Either Json.DecodeError Role
+toRole = toString >=> case _ of
   "Representational" -> pure Representational
   "Nominal" -> pure Nominal
   "Phantom" -> pure Phantom

@@ -29,14 +29,14 @@ derive instance Generic Associativity _
 instance Show Associativity where
   show x = genericShow x
 
-associativityJSON :: Associativity -> Json
-associativityJSON = Json.fromString <<< case _ of
+fromAssociativity :: Associativity -> Json
+fromAssociativity = Json.fromString <<< case _ of
   Infixl -> "infixl"
   Infixr -> "infixr"
   Infix -> "infix"
 
-jsonAssociativity :: Json -> Either Json.DecodeError Associativity
-jsonAssociativity = toString >=> case _ of
+toAssociativity :: Json -> Either Json.DecodeError Associativity
+toAssociativity = toString >=> case _ of
   "infixl" -> pure Infixl
   "infixr" -> pure Infixr
   "infix" -> pure Infix
@@ -57,14 +57,14 @@ derive instance Generic Fixity _
 instance Show Fixity where
   show x = genericShow x
 
-fixityJSON :: Fixity -> Json
-fixityJSON = fromRecordN Fixity
-  { associativity: fromRequired associativityJSON
+fromFixity :: Fixity -> Json
+fromFixity = fromRecordN Fixity
+  { associativity: fromRequired fromAssociativity
   , precedence: fromRequired Json.fromInt
   }
 
-jsonFixity :: Json -> Either Json.DecodeError Fixity
-jsonFixity = toRecordN Fixity
-  { associativity: toRequired jsonAssociativity
+toFixity :: Json -> Either Json.DecodeError Fixity
+toFixity = toRecordN Fixity
+  { associativity: toRequired toAssociativity
   , precedence: toRequired toInt
   }

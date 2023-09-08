@@ -2,8 +2,8 @@ module Language.PureScript.PSString
   ( PSString
   , toUTF16CodeUnits
   , mkPSString
-  , psStringJSON
-  , jsonPSString
+  , fromPsString
+  , toPSString
   , decodeString
   , decodeStringEither
   , decodeStringWithReplacement
@@ -20,7 +20,7 @@ import Data.Array as Array
 import Data.Char (toCharCode)
 import Data.CodePoint.Unicode (generalCategory)
 import Data.CodePoint.Unicode as GeneralCategory
-import Data.CodeUnit (CodeUnit, codeUnitJSON, decodeUtf16BE, decodeUtf16BEStr, encodeUtf16BE, jsonCodeUnit, prettyPrintCodeUnitJS, prettyPrintCodeUnitPS, showHex', unpairBE)
+import Data.CodeUnit (CodeUnit, fromCodeUnit, decodeUtf16BE, decodeUtf16BEStr, encodeUtf16BE, toCodeUnit, prettyPrintCodeUnitJS, prettyPrintCodeUnitPS, showHex', unpairBE)
 import Data.Either (Either, either)
 import Data.Enum (fromEnum, toEnum)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe)
@@ -44,16 +44,17 @@ derive newtype instance Monoid PSString
 instance Show PSString where
   show = show <<< codePoints
 
-psStringJSON :: PSString -> Json
-psStringJSON psStr = case decodeString psStr of
+fromPsString :: PSString -> Json
+fromPsString psStr = case decodeString psStr of
   Just str -> Json.fromString str
-  Nothing -> Json.fromArray codeUnitJSON $ toUTF16CodeUnits psStr
+  Nothing -> Json.fromArray fromCodeUnit $ toUTF16CodeUnits psStr
 
-jsonPSString :: Json -> Either Json.DecodeError PSString
-jsonPSString j = asString <|> asCodeUnitArray
+toPSString :: Json -> Either Json.DecodeError PSString
+
+toPSString j = asString <|> asCodeUnitArray
   where
   asString = mkPSString <$> Json.toString j
-  asCodeUnitArray = PSString <$> Json.toArray jsonCodeUnit j
+  asCodeUnitArray = PSString <$> Json.toArray toCodeUnit j
 
 mkPSString :: String -> PSString
 mkPSString = PSString <<< Array.concatMap encodeUtf16BE <<< toCodePointArray

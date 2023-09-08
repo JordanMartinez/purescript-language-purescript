@@ -32,7 +32,7 @@ import Safe.Coerce (coerce)
 -- | A data type representing the data stored in a bower.json package manifest
 -- file.
 --
--- Note that the 'encodeJson' / 'FromJSON' instances don't exactly match; for
+-- Note that the 'fromencode' / 'fromFrom' instances don't exactly match; for
 -- example, it is not always the case that decoding from Json and then encoding
 -- to Json will give you the exact same Json that you started with. However, if
 -- you start with a PackageMeta value, encode to Json, and then decode, you
@@ -61,45 +61,45 @@ derive instance Generic PackageMeta _
 instance Show PackageMeta where
   show x = genericShow x
 
-packageMetaJSON :: PackageMeta -> Json
-packageMetaJSON = fromRecordN PackageMeta
-  { name: fromRequired packageNameJSON
+fromPackageMeta :: PackageMeta -> Json
+fromPackageMeta = fromRecordN PackageMeta
+  { name: fromRequired fromPackageName
   , description: fromOption Json.fromString
   , main: fromOptionArray Json.fromString
-  , moduleType: fromOptionArray moduleTypeJSON
+  , moduleType: fromOptionArray fromModuleType
   , licence: fromOptionArray Json.fromString
   , ignore: fromOptionArray Json.fromString
   , keywords: fromOptionArray Json.fromString
-  , authors: fromOptionArray authorJSON
+  , authors: fromOptionArray fromAuthor
   , homepage: fromOption Json.fromString
-  , repository: fromOption repositoryJSON
-  , dependencies: fromOptionAssocArray unwrap versionRangeJSON
-  , devDependencies: fromOptionAssocArray unwrap versionRangeJSON
-  , resolutions: fromOptionAssocArray unwrap versionJSON
+  , repository: fromOption fromRepository
+  , dependencies: fromOptionAssocArray unwrap fromVersionRange
+  , devDependencies: fromOptionAssocArray unwrap fromVersionRange
+  , resolutions: fromOptionAssocArray unwrap fromVersion
   , private: FromProp \b ->
       if b then Just $ Tuple Nothing $ Json.fromBoolean b else Nothing
   }
 
-jsonPackageMeta :: Json -> Either Json.DecodeError PackageMeta
-jsonPackageMeta =
+toPackageMeta :: Json -> Either Json.DecodeError PackageMeta
+toPackageMeta =
   toRecordN PackageMeta
-    { name: toRequired jsonPackageName
+    { name: toRequired toPackageName
     , description: toOption toString
     , main: toOptionArray toString
-    , moduleType: toOptionArray jsonModuleType
+    , moduleType: toOptionArray toModuleType
     , licence: toOptionArray toString
     , ignore: toOptionArray toString
     , keywords: toOptionArray toString
-    , authors: toOptionArray jsonAuthor
+    , authors: toOptionArray toAuthor
     , homepage: toOption toString
-    , repository: toOption jsonRepository
-    , dependencies: toOptionAssocArray jsonPkgName jsonVersionRange
-    , devDependencies: toOptionAssocArray jsonPkgName jsonVersionRange
-    , resolutions: toOptionAssocArray jsonPkgName jsonVersion
+    , repository: toOption toRepository
+    , dependencies: toOptionAssocArray toPkgName toVersionRange
+    , devDependencies: toOptionAssocArray toPkgName toVersionRange
+    , resolutions: toOptionAssocArray toPkgName toVersion
     , private: toOptionDefault false toBoolean
     }
   where
-  jsonPkgName = note (DecodeError "Invalid package name") <<< parsePackageName
+  toPkgName = note (DecodeError "Invalid package name") <<< parsePackageName
 
 -- | A valid package name for a Bower package.
 newtype PackageName = PackageName String
@@ -111,11 +111,11 @@ derive instance Generic PackageName _
 instance Show PackageName where
   show x = genericShow x
 
-packageNameJSON :: PackageName -> Json
-packageNameJSON = unwrap >>> Json.fromString
+fromPackageName :: PackageName -> Json
+fromPackageName = unwrap >>> Json.fromString
 
-jsonPackageName :: Json -> Either Json.DecodeError PackageName
-jsonPackageName = toString >=> parsePackageName >>> note (DecodeError "Invalid package name")
+toPackageName :: Json -> Either Json.DecodeError PackageName
+toPackageName = toString >=> parsePackageName >>> note (DecodeError "Invalid package name")
 
 parsePackageName :: String -> Maybe PackageName
 parsePackageName = mkPackageName
@@ -158,15 +158,16 @@ derive instance Generic Author _
 instance Show Author where
   show x = genericShow x
 
-authorJSON :: Author -> Json
-authorJSON = fromRecordN Author
+fromAuthor :: Author -> Json
+
+fromAuthor = fromRecordN Author
   { name: fromRequired Json.fromString
   , email: fromOption Json.fromString
   , homepage: fromOption Json.fromString
   }
 
-jsonAuthor :: Json -> Either Json.DecodeError Author
-jsonAuthor j = decodeAuthorString j <|> decodeAuthorObj j
+toAuthor :: Json -> Either Json.DecodeError Author
+toAuthor j = decodeAuthorString j <|> decodeAuthorObj j
   where
   decodeAuthorString = toString >=> \str -> do
     let
@@ -233,11 +234,11 @@ moduleTypes =
     $ map (\t -> Tuple (String.toLower $ show t) t)
     $ (enumFromTo bottom top :: Array ModuleType)
 
-moduleTypeJSON :: ModuleType -> Json
-moduleTypeJSON = show >>> String.toLower >>> Json.fromString
+fromModuleType :: ModuleType -> Json
+fromModuleType = show >>> String.toLower >>> Json.fromString
 
-jsonModuleType :: Json -> Either Json.DecodeError ModuleType
-jsonModuleType = toString >=> flip Map.lookup moduleTypes >>> note (DecodeError "Key not found in 'moduleTypes' map")
+toModuleType :: Json -> Either Json.DecodeError ModuleType
+toModuleType = toString >=> flip Map.lookup moduleTypes >>> note (DecodeError "Key not found in 'moduleTypes' map")
 
 newtype Repository = Repository
   { url :: String
@@ -251,14 +252,14 @@ derive instance Generic Repository _
 instance Show Repository where
   show x = genericShow x
 
-repositoryJSON :: Repository -> Json
-repositoryJSON = fromRecordN Repository
+fromRepository :: Repository -> Json
+fromRepository = fromRecordN Repository
   { url: fromRequired Json.fromString
   , type: fromRequired Json.fromString
   }
 
-jsonRepository :: Json -> Either Json.DecodeError Repository
-jsonRepository = toRecordN Repository
+toRepository :: Json -> Either Json.DecodeError Repository
+toRepository = toRecordN Repository
   { url: toRequired toString
   , type: toRequired toString
   }
@@ -272,11 +273,11 @@ derive instance Generic Version _
 instance Show Version where
   show x = genericShow x
 
-versionJSON :: Version -> Json
-versionJSON = unwrap >>> Json.fromString
+fromVersion :: Version -> Json
+fromVersion = unwrap >>> Json.fromString
 
-jsonVersion :: Json -> Either Json.DecodeError Version
-jsonVersion = coerce <<< toString
+toVersion :: Json -> Either Json.DecodeError Version
+toVersion = coerce <<< toString
 
 newtype VersionRange = VersionRange String
 
@@ -287,11 +288,11 @@ derive instance Generic VersionRange _
 instance Show VersionRange where
   show x = genericShow x
 
-versionRangeJSON :: VersionRange -> Json
-versionRangeJSON = unwrap >>> Json.fromString
+fromVersionRange :: VersionRange -> Json
+fromVersionRange = unwrap >>> Json.fromString
 
-jsonVersionRange :: Json -> Either Json.DecodeError VersionRange
-jsonVersionRange = coerce <<< toString
+toVersionRange :: Json -> Either Json.DecodeError VersionRange
+toVersionRange = coerce <<< toString
 
 data BowerError
   = InvalidPackageName PackageNameError

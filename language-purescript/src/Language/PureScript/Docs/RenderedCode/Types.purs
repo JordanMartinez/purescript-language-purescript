@@ -3,14 +3,13 @@ module Language.PureScript.Docs.RenderedCode.Types where
 import Prelude
 
 import Codec.Json.Unidirectional.Value as Json
-import Control.Alt ((<|>))
 import Data.Argonaut.Core (Json)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (maybe)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Show.Generic (genericShow)
-import Language.PureScript.Names (ConstructorName, Ident, ModuleName, ProperName, Qualified, TypeName, identJSON, jsonIdent, jsonModuleName, jsonProperName, jsonQualified, moduleNameJSON, properNameJSON, qualifiedJSON)
+import Language.PureScript.Names (ConstructorName, Ident, ModuleName, ProperName, Qualified, TypeName, fromIdent, toIdent, toModuleName, toProperName, toQualified, fromModuleName, fromProperName, fromQualified)
 import Safe.Coerce (coerce)
 
 data ContainingModule
@@ -23,24 +22,24 @@ derive instance Generic ContainingModule _
 instance Show ContainingModule where
   show x = genericShow x
 
-containingModuleJSON :: ContainingModule -> Json
-containingModuleJSON = Json.fromJArray <<< case _ of
+fromContainingModule :: ContainingModule -> Json
+fromContainingModule = Json.fromJArray <<< case _ of
   ThisModule -> [ Json.fromString "ThisModule" ]
-  OtherModule mn -> [ Json.fromString "OtherModule", moduleNameJSON mn ]
+  OtherModule mn -> [ Json.fromString "OtherModule", fromModuleName mn ]
 
-jsonContainingModule :: Json -> Either Json.DecodeError ContainingModule
-jsonContainingModule j' = current j' <|> backwardsCompat j'
+toContainingModule :: Json -> Either Json.DecodeError ContainingModule
+toContainingModule = Json.altAccumulate current backwardsCompat
   where
   current = Json.toJArray >=> \ja -> do
     tag <- Json.underIndex 0 Json.toString ja
     case tag of
       "ThisModule" -> pure ThisModule
-      "OtherModule" -> OtherModule <$> Json.underIndex 1 jsonModuleName ja
+      "OtherModule" -> OtherModule <$> Json.underIndex 1 toModuleName ja
       str -> Left $ Json.DecodeError $ "Expected 'ThisModule' or 'OtherModule' but got '" <> str <> "'."
 
   -- For Json produced by compilers up to 0.10.5.
   backwardsCompat =
-    Json.toNullNothingOrJust jsonModuleName
+    Json.toNullNothingOrJust toModuleName
       >>> map (maybe ThisModule OtherModule)
 
 data Link
@@ -53,17 +52,17 @@ derive instance Generic Link _
 instance Show Link where
   show x = genericShow x
 
-linkJSON :: Link -> Json
-linkJSON = Json.fromJArray <<< case _ of
+fromLink :: Link -> Json
+fromLink = Json.fromJArray <<< case _ of
   NoLink -> [ Json.fromString "NoLink" ]
-  Link cm -> [ Json.fromString "Link", containingModuleJSON cm ]
+  Link cm -> [ Json.fromString "Link", fromContainingModule cm ]
 
-jsonLink :: Json -> Either Json.DecodeError Link
-jsonLink = Json.toJArray >=> \ja -> do
+toLink :: Json -> Either Json.DecodeError Link
+toLink = Json.toJArray >=> \ja -> do
   tag <- Json.underIndex 0 Json.toString ja
   case tag of
     "NoLink" -> pure NoLink
-    "Link" -> Json.underIndex 1 (jsonContainingModule >>> map Link) ja
+    "Link" -> Json.underIndex 1 (toContainingModule >>> map Link) ja
     str -> Left $ Json.DecodeError $ "Expected 'NoLink' or 'Link' but got '" <> str <> "'."
 
 data Namespace
@@ -76,13 +75,13 @@ derive instance Generic Namespace _
 instance Show Namespace where
   show x = genericShow x
 
-namespaceJSON :: Namespace -> Json
-namespaceJSON = Json.fromString <<< case _ of
+fromNamespace :: Namespace -> Json
+fromNamespace = Json.fromString <<< case _ of
   ValueLevel -> "ValueLevel"
   TypeLevel -> "TypeLevel"
 
-jsonNamespace :: Json -> Either Json.DecodeError Namespace
-jsonNamespace = Json.toString >=> case _ of
+toNamespace :: Json -> Either Json.DecodeError Namespace
+toNamespace = Json.toString >=> case _ of
   "ValueLevel" -> pure ValueLevel
   "TypeLevel" -> pure TypeLevel
   str -> Left $ Json.DecodeError $ "Expected 'ValueLevel' or 'TypeLevel' but got '" <> str <> "'."
@@ -107,16 +106,16 @@ derive instance Generic RenderedCodeElement _
 instance Show RenderedCodeElement where
   show x = genericShow x
 
-renderedCodeElementJSON :: RenderedCodeElement -> Json
-renderedCodeElementJSON = Json.fromJArray <<< case _ of
+fromRenderedCodeElement :: RenderedCodeElement -> Json
+fromRenderedCodeElement = Json.fromJArray <<< case _ of
   Syntax str -> [ Json.fromString "syntax", Json.fromString str ]
   Keyword str -> [ Json.fromString "keyword", Json.fromString str ]
   Space -> [ Json.fromString "space" ]
-  Symbol ns str link -> [ Json.fromString "symbol", namespaceJSON ns, Json.fromString str, linkJSON link ]
+  Symbol ns str link -> [ Json.fromString "symbol", fromNamespace ns, Json.fromString str, fromLink link ]
   Role role -> [ Json.fromString "role", Json.fromString role ]
 
-jsonRenderedCodeElement :: Json -> Either Json.DecodeError RenderedCodeElement
-jsonRenderedCodeElement = Json.toJArray >=> \ja -> do
+toRenderedCodeElement :: Json -> Either Json.DecodeError RenderedCodeElement
+toRenderedCodeElement = Json.toJArray >=> \ja -> do
   ty <- Json.underIndex 0 Json.toString ja
   case ty of
     "syntax" ->
@@ -127,9 +126,9 @@ jsonRenderedCodeElement = Json.toJArray >=> \ja -> do
       pure Space
     "symbol" ->
       Symbol
-        <$> (Json.underIndex 1 jsonNamespace ja)
+        <$> (Json.underIndex 1 toNamespace ja)
         <*> (Json.underIndex 2 Json.toString ja)
-        <*> (Json.underIndex 3 jsonLink ja)
+        <*> (Json.underIndex 3 toLink ja)
     "role" ->
       Role <$> (Json.underIndex 1 Json.toString ja)
     str -> Left $ Json.DecodeError $ "Expected 'syntax', 'keyword', 'space', 'symbol' or 'role' but got " <> str <> "'."
@@ -146,16 +145,16 @@ instance Show RenderedCode where
 derive newtype instance Semigroup RenderedCode
 derive newtype instance Monoid RenderedCode
 
-renderedCodeJSON :: RenderedCode -> Json
-renderedCodeJSON = unwrap >>> Json.fromArray renderedCodeElementJSON
+fromRenderedCode :: RenderedCode -> Json
+fromRenderedCode = unwrap >>> Json.fromArray fromRenderedCodeElement
 
-jsonRenderedCode :: Json -> Either Json.DecodeError RenderedCode
-jsonRenderedCode = coerce <<< Json.toArray jsonRenderedCodeElement
+toRenderedCode :: Json -> Either Json.DecodeError RenderedCode
+toRenderedCode = coerce <<< Json.toArray toRenderedCodeElement
 
 type FixityAlias = Qualified (Either (ProperName TypeName) (Either Ident (ProperName ConstructorName)))
 
-fixityAliasJSON :: FixityAlias -> Json
-fixityAliasJSON = qualifiedJSON $ Json.fromEitherSingle properNameJSON $ Json.fromEitherSingle identJSON properNameJSON
+fromFixityAlias :: FixityAlias -> Json
+fromFixityAlias = fromQualified $ Json.fromEitherSingle fromProperName $ Json.fromEitherSingle fromIdent fromProperName
 
-jsonFixityAlias :: Json -> Either Json.DecodeError FixityAlias
-jsonFixityAlias = jsonQualified $ Json.toEitherSingle jsonProperName $ Json.toEitherSingle jsonIdent jsonProperName
+toFixityAlias :: Json -> Either Json.DecodeError FixityAlias
+toFixityAlias = toQualified $ Json.toEitherSingle toProperName $ Json.toEitherSingle toIdent toProperName

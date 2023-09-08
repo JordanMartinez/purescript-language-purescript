@@ -28,19 +28,19 @@ import Data.Tuple (Tuple(..))
 import Data.Version (Version, showVersion, version)
 import Data.Version as Version
 import Foreign.Object as Object
-import Language.PureScript.AST.Declarations (KindSignatureFor, jsonKindSignatureFor, kindSignatureForJSON)
-import Language.PureScript.AST.Operators (Fixity, fixityJSON, jsonFixity)
-import Language.PureScript.AST.SourcePos (SourceSpan, jsonSourceSpan, sourceSpanJSON)
-import Language.PureScript.Docs.RenderedCode.Types (FixityAlias, fixityAliasJSON, jsonFixityAlias)
+import Language.PureScript.AST.Declarations (KindSignatureFor, toKindSignatureFor, fromKindSignatureFor)
+import Language.PureScript.AST.Operators (Fixity, fromFixity, toFixity)
+import Language.PureScript.AST.SourcePos (SourceSpan, toSourceSpan, fromSourceSpan)
+import Language.PureScript.Docs.RenderedCode.Types (FixityAlias, fromFixityAlias, toFixityAlias)
 import Language.PureScript.Docs.RenderedCode.Types as DRCTypes
-import Language.PureScript.Environment (DataDeclType, dataDeclTypeJSON, jsonDataDeclType, kindType)
-import Language.PureScript.Names (ModuleName(..), jsonModuleName, jsonProperName, jsonQualified, moduleNameJSON)
+import Language.PureScript.Environment (DataDeclType, fromDataDeclType, toDataDeclType, kindType)
+import Language.PureScript.Names (ModuleName(..), toModuleName, toProperName, toQualified, fromModuleName)
 import Language.PureScript.Publish.Registry.Compat (PursJsonError)
-import Language.PureScript.Role (Role, jsonRole, roleJSON)
-import Language.PureScript.Types (Constraint(..), constraintJSON, jsonTypeUnit, typeJSON)
+import Language.PureScript.Role (Role, toRole, fromRole)
+import Language.PureScript.Types (Constraint(..), fromConstraint, toTypeUnit, fromType)
 import Language.PureScript.Types as P
 import Safe.Coerce (coerce)
-import Web.Bower.PackageMeta (BowerError, PackageMeta, PackageName, jsonPackageMeta, jsonPackageName, packageMetaJSON, packageNameJSON, parsePackageName)
+import Web.Bower.PackageMeta (BowerError, PackageMeta, PackageName, toPackageMeta, toPackageName, fromPackageMeta, fromPackageName, parsePackageName)
 
 type Type' = P.Type Unit
 type Constraint' = P.Constraint Unit
@@ -68,35 +68,35 @@ derive instance Generic (Package a) _
 instance Show a => Show (Package a) where
   show x = genericShow x
 
-packageJSON :: forall a. (a -> Json) -> Package a -> Json
-packageJSON uploaderJSON = J.fromRecordN Package
-  { packageMeta: J.fromRequired packageMetaJSON
-  , version: J.fromRequired versionJSON
+fromPackage :: forall a. (a -> Json) -> Package a -> Json
+fromPackage fromUploader = J.fromRecordN Package
+  { packageMeta: J.fromRequired fromPackageMeta
+  , version: J.fromRequired fromVersion
   , versionTag: J.fromRequired J.fromString
-  , modules: J.fromRequired $ J.fromArray docModuleJSON
-  , moduleMap: J.fromRequired $ (J.fromPropArray <<< map (bimap unwrap packageNameJSON) <<< Map.toUnfoldable)
-  , resolvedDependencies: J.fromRequired $ (J.fromPropArray <<< map (bimap unwrap versionJSON))
-  , github: J.fromRequired $ J.fromTuple githubUserJSON githubRepoJSON
-  , uploader: J.fromRequired uploaderJSON
-  , compilerVersion: J.fromRequired versionJSON
-  , tagTime: J.fromOption iso8601JSON
+  , modules: J.fromRequired $ J.fromArray fromDocModule
+  , moduleMap: J.fromRequired $ (J.fromPropArray <<< map (bimap unwrap fromPackageName) <<< Map.toUnfoldable)
+  , resolvedDependencies: J.fromRequired $ (J.fromPropArray <<< map (bimap unwrap fromVersion))
+  , github: J.fromRequired $ J.fromTuple fromGithubUser fromGithubRepo
+  , uploader: J.fromRequired fromUploader
+  , compilerVersion: J.fromRequired fromVersion
+  , tagTime: J.fromOption fromISO8601
   }
 
-jsonUploadedPackage :: Version -> Json -> Either J.DecodeError UploadedPackage
-jsonUploadedPackage minVersion = jsonPackage minVersion jsonNotYetKnown
+toUploadedPackage :: Version -> Json -> Either J.DecodeError UploadedPackage
+toUploadedPackage minVersion = toPackage minVersion toNotYetKnown
 
-jsonPackage :: forall a. Version -> (Json -> Either J.DecodeError a) -> Json -> Either J.DecodeError (Package a)
-jsonPackage minimumVersion jsonUploader j = do
+toPackage :: forall a. Version -> (Json -> Either J.DecodeError a) -> Json -> Either J.DecodeError (Package a)
+toPackage minimumVersion toUploader j = do
   jo <- J.toJObject j
-  compilerVersion <- ((J.underKey "compilerVersion" jsonVersion jo) <|> (pure $ version 0 7 0 Nil Nil))
+  compilerVersion <- ((J.underKey "compilerVersion" toVersion jo) <|> (pure $ version 0 7 0 Nil Nil))
   when (compilerVersion < minimumVersion)
     (Left $ J.DecodeError $ "Invalid compiler version: " <> showVersion compilerVersion :: Either J.DecodeError Unit)
   J.toRecordN Package
-    { packageMeta: J.toRequired jsonPackageMeta
-    , version: J.toRequired jsonVersion
+    { packageMeta: J.toRequired toPackageMeta
+    , version: J.toRequired toVersion
     , versionTag: J.toRequired J.toString
-    , tagTime: J.toOption jsonIso8601
-    , modules: J.toRequired $ J.toArray jsonDocModule
+    , tagTime: J.toOption toISO8601
+    , modules: J.toRequired $ J.toArray toDocModule
     , moduleMap: ToProp $ mkFn2 \lookup key -> do
         let
           toModuleMap = lmap (J.AtKey key) do
@@ -107,7 +107,7 @@ jsonPackage minimumVersion jsonUploader j = do
                 (Object.toUnfoldable <$> J.toJObject x)
                   >>= flip Array.foldM Map.empty
                     ( \acc (Tuple k v) -> do
-                        v' <- jsonPackageName v
+                        v' <- toPackageName v
                         pure $ Map.insert (ModuleName k) v' acc
                     )
 
@@ -119,16 +119,16 @@ jsonPackage minimumVersion jsonUploader j = do
               Nothing ->
                 Left $ J.DecodeError "Missing key"
               Just x -> do
-                arr <- J.toArray (jsonInPackage (J.toJArray >=> J.underIndex 0 jsonModuleName)) x
+                arr <- J.toArray (toInPackage (J.toJArray >=> J.underIndex 0 toModuleName)) x
                 pure $ Map.fromFoldable $ flip Array.mapMaybe arr case _ of
                   Local _ -> Nothing
                   FromDep pkgName mn -> Just $ Tuple mn pkgName
 
         J.altAccumulateLazy toModuleMap toBookmarks
 
-    , resolvedDependencies: J.toRequired $ J.toJObject >>> map Object.toUnfoldable >=> traverse (bitraverse (map (note $ J.DecodeError "Invalid package name") parsePackageName) jsonVersion)
-    , github: J.toRequired $ J.toTuple jsonGithubUser jsonGithubRepo
-    , uploader: J.toRequired jsonUploader
+    , resolvedDependencies: J.toRequired $ J.toJObject >>> map Object.toUnfoldable >=> traverse (bitraverse (map (note $ J.DecodeError "Invalid package name") parsePackageName) toVersion)
+    , github: J.toRequired $ J.toTuple toGithubUser toGithubRepo
+    , uploader: J.toRequired toUploader
     , compilerVersion: J.toStatic compilerVersion
     }
     j
@@ -155,14 +155,14 @@ _ss = [ Placeholder ":", SecondsTwoDigits ]
 _sss :: Array FormatterCommand
 _sss = [ Placeholder ":", Milliseconds ]
 
-iso8601JSON :: DateTime -> Json
-iso8601JSON = J.fromString <<< format encoder
+fromISO8601 :: DateTime -> Json
+fromISO8601 = J.fromString <<< format encoder
   where
   encoder = List.fromFoldable $
     yyyy_mm_dd <> [ Placeholder "T" ] <> hh_mm <> _ss <> _sss <> [ Placeholder "Z" ]
 
-jsonIso8601 :: Json -> Either J.DecodeError DateTime
-jsonIso8601 = J.toString >=> unformat primaryDecoder >>> lmap J.DecodeError
+toISO8601 :: Json -> Either J.DecodeError DateTime
+toISO8601 = J.toString >=> unformat primaryDecoder >>> lmap J.DecodeError
   where
   yyyy_mm_ddThh_mm = (Array.snoc yyyy_mm_dd (Placeholder "T")) <> hh_mm
 
@@ -184,11 +184,11 @@ derive instance Generic NotYetKnown _
 instance Show NotYetKnown where
   show x = genericShow x
 
-notYetKnownJSON :: NotYetKnown -> Json
-notYetKnownJSON = const J.fromJNull
+fromNotYetKnown :: NotYetKnown -> Json
+fromNotYetKnown = const J.fromJNull
 
-jsonNotYetKnown :: Json -> Either J.DecodeError NotYetKnown
-jsonNotYetKnown = voidRight NotYetKnown <<< J.toJNull
+toNotYetKnown :: Json -> Either J.DecodeError NotYetKnown
+toNotYetKnown = voidRight NotYetKnown <<< J.toJNull
 
 data ManifestError
   = BowerManifest BowerError
@@ -214,33 +214,34 @@ derive instance Generic DocModule _
 instance Show DocModule where
   show x = genericShow x
 
-docModuleJSON :: DocModule -> Json
-docModuleJSON = J.fromRecordN DocModule
+fromDocModule :: DocModule -> Json
+
+fromDocModule = J.fromRecordN DocModule
   { name: J.fromRequired $ unwrap >>> J.fromString
   , comments: J.fromOption J.fromString
-  , declarations: J.fromRequired $ J.fromArray declarationJSON
+  , declarations: J.fromRequired $ J.fromArray fromDeclaration
   , reExports: J.fromRequired $ J.fromArray fromObj
   }
   where
   fromObj :: Tuple (InPackage ModuleName) (Array Declaration) -> Json
   fromObj (Tuple mn decls) = J.fromPropArray
-    [ Tuple "moduleName" $ inPackageJSON moduleNameJSON mn
-    , Tuple "declarations" $ J.fromArray declarationJSON decls
+    [ Tuple "moduleName" $ fromInPackage fromModuleName mn
+    , Tuple "declarations" $ J.fromArray fromDeclaration decls
     ]
 
-jsonDocModule :: Json -> Either J.DecodeError DocModule
-jsonDocModule = J.toRecordN DocModule
+toDocModule :: Json -> Either J.DecodeError DocModule
+toDocModule = J.toRecordN DocModule
   { name: J.toRequired $ coerce <<< J.toString
   , comments: J.toRequired $ J.toNullNothingOrJust J.toString
-  , declarations: J.toRequired $ J.toArray jsonDeclaration
-  , reExports: J.toRequired $ J.toArray jsonAsReExport
+  , declarations: J.toRequired $ J.toArray toDeclaration
+  , reExports: J.toRequired $ J.toArray toAsReExport
   }
   where
-  jsonAsReExport :: Json -> Either J.DecodeError (Tuple (InPackage ModuleName) (Array Declaration))
-  jsonAsReExport =
+  toAsReExport :: Json -> Either J.DecodeError (Tuple (InPackage ModuleName) (Array Declaration))
+  toAsReExport =
     J.toRecord
-      { moduleName: J.toRequired jsonAsRexportModuleName
-      , declarations: J.toRequired $ J.toArray jsonDeclaration
+      { moduleName: J.toRequired toAsRexportModuleName
+      , declarations: J.toRequired $ J.toArray toDeclaration
       }
       >>> map \{ moduleName, declarations } -> Tuple moduleName declarations
 
@@ -248,10 +249,10 @@ jsonDocModule = J.toRecordN DocModule
   -- of the compiler, where the modReExports field had the type
   -- [(P.ModuleName, [Declaration])]. This should eventually be removed,
   -- possibly at the same time as the next breaking change to this Json format.
-  jsonAsRexportModuleName :: Json -> Either J.DecodeError (InPackage ModuleName)
-  jsonAsRexportModuleName = J.altAccumulate
-    (jsonInPackage jsonModuleName)
-    (map Local <$> jsonModuleName)
+  toAsRexportModuleName :: Json -> Either J.DecodeError (InPackage ModuleName)
+  toAsRexportModuleName = J.altAccumulate
+    (toInPackage toModuleName)
+    (map Local <$> toModuleName)
 
 newtype Declaration = Declaration
   { title :: String
@@ -269,24 +270,25 @@ derive instance Generic Declaration _
 instance Show Declaration where
   show x = genericShow x
 
-declarationJSON :: Declaration -> Json
-declarationJSON = J.fromRecordN Declaration
+fromDeclaration :: Declaration -> Json
+
+fromDeclaration = J.fromRecordN Declaration
   { title: J.fromRequired J.fromString
   , comments: J.fromRequired $ J.fromNullNothingOrJust J.fromString
-  , sourceSpan: J.fromRequired $ J.fromNullNothingOrJust sourceSpanJSON
-  , children: J.fromRequired $ J.fromArray childDeclarationJSON
-  , info: J.fromRequired declarationInfoJSON
-  , kind: J.fromOption kindInfoJSON
+  , sourceSpan: J.fromRequired $ J.fromNullNothingOrJust fromSourceSpan
+  , children: J.fromRequired $ J.fromArray fromChildDeclaration
+  , info: J.fromRequired fromDeclarationInfo
+  , kind: J.fromOption fromKindInfo
   }
 
-jsonDeclaration :: Json -> Either J.DecodeError Declaration
-jsonDeclaration = J.toRecordN Declaration
+toDeclaration :: Json -> Either J.DecodeError Declaration
+toDeclaration = J.toRecordN Declaration
   { title: J.toRequired J.toString
   , comments: J.toRequired $ J.toNullNothingOrJust J.toString
-  , sourceSpan: J.toRequired $ J.toNullNothingOrJust jsonSourceSpan
-  , children: J.toRequired $ J.toArray jsonChildDeclaration
-  , info: J.toRequired jsonDeclarationInfo
-  , kind: J.toOptionDefault Nothing $ J.toNullNothingOrJust jsonKindInfo
+  , sourceSpan: J.toRequired $ J.toNullNothingOrJust toSourceSpan
+  , children: J.toRequired $ J.toArray toChildDeclaration
+  , info: J.toRequired toDeclarationInfo
+  , kind: J.toOptionDefault Nothing $ J.toNullNothingOrJust toKindInfo
   }
 
 data DeclarationInfo
@@ -303,85 +305,86 @@ derive instance Generic DeclarationInfo _
 instance Show DeclarationInfo where
   show x = genericShow x
 
-declarationInfoJSON :: DeclarationInfo -> Json
-declarationInfoJSON = case _ of
+fromDeclarationInfo :: DeclarationInfo -> Json
+
+fromDeclarationInfo = case _ of
   ValueDeclaration ty -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "value"
-    , Tuple "type " $ typeJSON (const J.fromJNull) ty
+    , Tuple "type " $ fromType (const J.fromJNull) ty
     ]
   DataDeclaration ty args roles -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "data"
-    , Tuple "dataDeclType" $ dataDeclTypeJSON ty
-    , Tuple "typeArguments" $ J.fromArray (J.fromTuple J.fromString (J.fromNullNothingOrJust (typeJSON (const J.fromJNull)))) args
-    , Tuple "roles" $ J.fromArray roleJSON roles
+    , Tuple "dataDeclType" $ fromDataDeclType ty
+    , Tuple "typeArguments" $ J.fromArray (J.fromTuple J.fromString (J.fromNullNothingOrJust (fromType (const J.fromJNull)))) args
+    , Tuple "roles" $ J.fromArray fromRole roles
     ]
   ExternDataDeclaration kind roles -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "externData"
-    , Tuple "kind" $ typeJSON (const J.fromJNull) kind
-    , Tuple "roles" $ J.fromArray roleJSON roles
+    , Tuple "kind" $ fromType (const J.fromJNull) kind
+    , Tuple "roles" $ J.fromArray fromRole roles
     ]
   TypeSynonymDeclaration args ty -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "typeSynonym"
-    , Tuple "arguments" $ J.fromArray (J.fromTuple J.fromString (J.fromNullNothingOrJust (typeJSON (const J.fromJNull)))) args
-    , Tuple "type" $ typeJSON (const J.fromJNull) ty
+    , Tuple "arguments" $ J.fromArray (J.fromTuple J.fromString (J.fromNullNothingOrJust (fromType (const J.fromJNull)))) args
+    , Tuple "type" $ fromType (const J.fromJNull) ty
     ]
   TypeClassDeclaration args super fundeps -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "typeClass"
-    , Tuple "arguments" $ J.fromArray (J.fromTuple J.fromString (J.fromNullNothingOrJust (typeJSON (const J.fromJNull)))) args
-    , Tuple "superclasses" $ J.fromArray (constraintJSON (const J.fromJNull)) super
+    , Tuple "arguments" $ J.fromArray (J.fromTuple J.fromString (J.fromNullNothingOrJust (fromType (const J.fromJNull)))) args
+    , Tuple "superclasses" $ J.fromArray (fromConstraint (const J.fromJNull)) super
     , Tuple "fundeps" $ J.fromArray (J.fromTuple (J.fromArray J.fromString) (J.fromArray J.fromString)) fundeps
     ]
   AliasDeclaration fixity alias -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "alias"
-    , Tuple "fixity" $ fixityJSON fixity
-    , Tuple "alias" $ fixityAliasJSON alias
+    , Tuple "fixity" $ fromFixity fixity
+    , Tuple "alias" $ fromFixityAlias alias
     ]
 
-jsonDeclarationInfo :: Json -> Either J.DecodeError DeclarationInfo
-jsonDeclarationInfo j = do
+toDeclarationInfo :: Json -> Either J.DecodeError DeclarationInfo
+toDeclarationInfo j = do
   jo <- J.toJObject j
   declType <- J.underKey "declType" J.toString jo
   case declType of
     "value" ->
       ValueDeclaration
-        <$> (J.underKey "type" jsonTypeUnit jo)
+        <$> (J.underKey "type" toTypeUnit jo)
     "data" ->
       DataDeclaration
-        <$> (J.underKey "dataDeclType" jsonDataDeclType jo)
-        <*> (J.underKey "typeArguments" jsonTypeArguments jo)
-        <*> ((J.underKey "roles" (J.toArray jsonRole) jo) <|> pure [])
+        <$> (J.underKey "dataDeclType" toDataDeclType jo)
+        <*> (J.underKey "typeArguments" toTypeArguments jo)
+        <*> ((J.underKey "roles" (J.toArray toRole) jo) <|> pure [])
     "externData" ->
       ExternDataDeclaration
-        <$> (J.underKey "kind" jsonTypeUnit jo)
-        <*> ((J.underKey "roles" (J.toArray jsonRole) jo) <|> pure [])
+        <$> (J.underKey "kind" toTypeUnit jo)
+        <*> ((J.underKey "roles" (J.toArray toRole) jo) <|> pure [])
     "typeSynonym" ->
       TypeSynonymDeclaration
-        <$> (J.underKey "arguments" jsonTypeArguments jo)
-        <*> (J.underKey "type" jsonTypeUnit jo)
+        <$> (J.underKey "arguments" toTypeArguments jo)
+        <*> (J.underKey "type" toTypeUnit jo)
     "typeClass" ->
       TypeClassDeclaration
-        <$> (J.underKey "arguments" jsonTypeArguments jo)
-        <*> (J.underKey "superclasses" (J.toArray jsonAsConstrantUnit) jo)
-        <*> ((J.underKey "fundeps" jsonFunDeps jo) <|> pure [])
+        <$> (J.underKey "arguments" toTypeArguments jo)
+        <*> (J.underKey "superclasses" (J.toArray toAsConstrantUnit) jo)
+        <*> ((J.underKey "fundeps" toFunDeps jo) <|> pure [])
     "alias" ->
       AliasDeclaration
-        <$> (J.underKey "fixity" jsonFixity jo)
-        <*> (J.underKey "alias" jsonFixityAlias jo)
+        <$> (J.underKey "fixity" toFixity jo)
+        <*> (J.underKey "alias" toFixityAlias jo)
     -- Backwards compat: kinds are extern data
     "kind" ->
       pure $ ExternDataDeclaration (void kindType) []
     str ->
       Left $ J.DecodeError $ "Expected 'instance', 'dataConstructor', or 'typeClassMember' but got '" <> str <> "'."
 
-jsonTypeArguments :: Json -> Either J.DecodeError (Array (Tuple String (Maybe Type')))
-jsonTypeArguments = J.toArray (J.toTuple J.toString (J.toNullNothingOrJust jsonTypeUnit))
+toTypeArguments :: Json -> Either J.DecodeError (Array (Tuple String (Maybe Type')))
+toTypeArguments = J.toArray (J.toTuple J.toString (J.toNullNothingOrJust toTypeUnit))
 
-jsonAsConstrantUnit :: Json -> Either J.DecodeError Constraint'
-jsonAsConstrantUnit = J.toRecordN Constraint
+toAsConstrantUnit :: Json -> Either J.DecodeError Constraint'
+toAsConstrantUnit = J.toRecordN Constraint
   { ann: J.toStatic unit
-  , class: J.toRequiredRename "constraintClass" $ jsonQualified jsonProperName
-  , kindArgs: J.toOptionDefaultRename "constraintKindArgs" [] $ J.toArray jsonTypeUnit
-  , args: J.toRequiredRename "constraintArgs" $ J.toArray jsonTypeUnit
+  , class: J.toRequiredRename "constraintClass" $ toQualified toProperName
+  , kindArgs: J.toOptionDefaultRename "constraintKindArgs" [] $ J.toArray toTypeUnit
+  , args: J.toRequiredRename "constraintArgs" $ J.toArray toTypeUnit
   , data: J.toStatic Nothing
   }
 
@@ -397,16 +400,16 @@ derive instance Generic KindInfo _
 instance Show KindInfo where
   show x = genericShow x
 
-kindInfoJSON :: KindInfo -> Json
-kindInfoJSON = J.fromRecordN KindInfo
-  { keyword: J.fromRequired kindSignatureForJSON
-  , kind: J.fromRequired $ typeJSON (const J.fromJNull)
+fromKindInfo :: KindInfo -> Json
+fromKindInfo = J.fromRecordN KindInfo
+  { keyword: J.fromRequired fromKindSignatureFor
+  , kind: J.fromRequired $ fromType (const J.fromJNull)
   }
 
-jsonKindInfo :: Json -> Either J.DecodeError KindInfo
-jsonKindInfo = J.toRecordN KindInfo
-  { keyword: J.toRequired jsonKindSignatureFor
-  , kind: J.toRequired jsonTypeUnit
+toKindInfo :: Json -> Either J.DecodeError KindInfo
+toKindInfo = J.toRecordN KindInfo
+  { keyword: J.toRequired toKindSignatureFor
+  , kind: J.toRequired toTypeUnit
   }
 
 newtype ChildDeclaration = ChildDeclaration
@@ -423,20 +426,21 @@ derive instance Generic ChildDeclaration _
 instance Show ChildDeclaration where
   show x = genericShow x
 
-childDeclarationJSON :: ChildDeclaration -> Json
-childDeclarationJSON = J.fromRecordN ChildDeclaration
+fromChildDeclaration :: ChildDeclaration -> Json
+
+fromChildDeclaration = J.fromRecordN ChildDeclaration
   { title: J.fromRequired J.fromString
   , comments: J.fromRequired $ J.fromNullNothingOrJust J.fromString
-  , sourceSpan: J.fromRequired $ J.fromNullNothingOrJust sourceSpanJSON
-  , info: J.fromRequired childDeclarationInfoJSON
+  , sourceSpan: J.fromRequired $ J.fromNullNothingOrJust fromSourceSpan
+  , info: J.fromRequired fromChildDeclarationInfo
   }
 
-jsonChildDeclaration :: Json -> Either J.DecodeError ChildDeclaration
-jsonChildDeclaration = J.toRecordN ChildDeclaration
+toChildDeclaration :: Json -> Either J.DecodeError ChildDeclaration
+toChildDeclaration = J.toRecordN ChildDeclaration
   { title: J.toRequired J.toString
   , comments: J.toRequired $ J.toNullNothingOrJust J.toString
-  , sourceSpan: J.toRequired $ J.toNullNothingOrJust jsonSourceSpan
-  , info: J.toRequired jsonChildDeclarationInfo
+  , sourceSpan: J.toRequired $ J.toNullNothingOrJust toSourceSpan
+  , info: J.toRequired toChildDeclarationInfo
   }
 
 data ChildDeclarationInfo
@@ -450,37 +454,38 @@ derive instance Generic ChildDeclarationInfo _
 instance Show ChildDeclarationInfo where
   show x = genericShow x
 
-childDeclarationInfoJSON :: ChildDeclarationInfo -> Json
-childDeclarationInfoJSON = case _ of
+fromChildDeclarationInfo :: ChildDeclarationInfo -> Json
+
+fromChildDeclarationInfo = case _ of
   ChildInstance deps ty -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "instance"
-    , Tuple "dependencies" $ J.fromArray (constraintJSON (const J.fromJNull)) deps
-    , Tuple "type" $ typeJSON (const J.fromJNull) ty
+    , Tuple "dependencies" $ J.fromArray (fromConstraint (const J.fromJNull)) deps
+    , Tuple "type" $ fromType (const J.fromJNull) ty
     ]
   ChildDataConstructor args -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "typeClassMember"
-    , Tuple "arguments" $ J.fromArray (typeJSON (const J.fromJNull)) args
+    , Tuple "arguments" $ J.fromArray (fromType (const J.fromJNull)) args
     ]
   ChildTypeClassMember ty -> J.fromPropArray
     [ Tuple "declType" $ J.fromString "typeClassMember"
-    , Tuple "type" $ typeJSON (const J.fromJNull) ty
+    , Tuple "type" $ fromType (const J.fromJNull) ty
     ]
 
-jsonChildDeclarationInfo :: Json -> Either J.DecodeError ChildDeclarationInfo
-jsonChildDeclarationInfo j = do
+toChildDeclarationInfo :: Json -> Either J.DecodeError ChildDeclarationInfo
+toChildDeclarationInfo j = do
   jo <- J.toJObject j
   declType <- J.underKey "declType" J.toString jo
   case declType of
     "instance" ->
       ChildInstance
-        <$> (J.underKey "dependencies" (J.toArray jsonAsConstrantUnit) jo)
-        <*> (J.underKey "type" jsonTypeUnit jo)
+        <$> (J.underKey "dependencies" (J.toArray toAsConstrantUnit) jo)
+        <*> (J.underKey "type" toTypeUnit jo)
     "dataConstructor" ->
       ChildDataConstructor
-        <$> (J.underKey "arguments" (J.toArray jsonTypeUnit) jo)
+        <$> (J.underKey "arguments" (J.toArray toTypeUnit) jo)
     "typeClassMember" ->
       ChildTypeClassMember
-        <$> (J.underKey "type" jsonTypeUnit jo)
+        <$> (J.underKey "type" toTypeUnit jo)
     str ->
       Left $ J.DecodeError $ "Expected 'instance', 'dataConstructor', or 'typeClassMember' but got '" <> str <> "'."
 
@@ -493,11 +498,11 @@ derive instance Generic GithubUser _
 instance Show GithubUser where
   show x = genericShow x
 
-githubUserJSON :: GithubUser -> Json
-githubUserJSON = unwrap >>> J.fromString
+fromGithubUser :: GithubUser -> Json
+fromGithubUser = unwrap >>> J.fromString
 
-jsonGithubUser :: Json -> Either J.DecodeError GithubUser
-jsonGithubUser = coerce <<< J.toString
+toGithubUser :: Json -> Either J.DecodeError GithubUser
+toGithubUser = coerce <<< J.toString
 
 newtype GithubRepo = GithubRepo String
 
@@ -508,11 +513,11 @@ derive instance Generic GithubRepo _
 instance Show GithubRepo where
   show x = genericShow x
 
-githubRepoJSON :: GithubRepo -> Json
-githubRepoJSON = unwrap >>> J.fromString
+fromGithubRepo :: GithubRepo -> Json
+fromGithubRepo = unwrap >>> J.fromString
 
-jsonGithubRepo :: Json -> Either J.DecodeError GithubRepo
-jsonGithubRepo = coerce <<< J.toString
+toGithubRepo :: Json -> Either J.DecodeError GithubRepo
+toGithubRepo = coerce <<< J.toString
 
 data PackageError
   = CompilerTooOld Version Version
@@ -545,20 +550,20 @@ instance Show a => Show (InPackage a) where
 
 derive instance Functor InPackage
 
-inPackageJSON :: forall a. (a -> Json) -> InPackage a -> Json
-inPackageJSON innerJSON = case _ of
+fromInPackage :: forall a. (a -> Json) -> InPackage a -> Json
+fromInPackage fromInner = case _ of
   Local a -> J.fromPropArray
-    [ Tuple "item" $ innerJSON a ]
+    [ Tuple "item" $ fromInner a ]
   FromDep pkgName a -> J.fromPropArray
-    [ Tuple "package" $ packageNameJSON pkgName
-    , Tuple "item" $ innerJSON a
+    [ Tuple "package" $ fromPackageName pkgName
+    , Tuple "item" $ fromInner a
     ]
 
-jsonInPackage :: forall a. (Json -> Either J.DecodeError a) -> Json -> Either J.DecodeError (InPackage a)
-jsonInPackage jsonInner =
+toInPackage :: forall a. (Json -> Either J.DecodeError a) -> Json -> Either J.DecodeError (InPackage a)
+toInPackage toInner =
   J.toRecord
-    { package: J.toOptionDefault Nothing $ J.toNullNothingOrJust jsonPackageName
-    , item: J.toRequired jsonInner
+    { package: J.toOptionDefault Nothing $ J.toNullNothingOrJust toPackageName
+    , item: J.toRequired toInner
     }
     >>> map \{ package, item } -> maybe (Local item) (flip FromDep item) package
 
@@ -605,11 +610,11 @@ derive instance Generic LinkLocation _
 instance Show LinkLocation where
   show x = genericShow x
 
-jsonFunDeps :: Json -> Either J.DecodeError (Array (Tuple (Array String) (Array String)))
-jsonFunDeps = J.toArray (J.toTuple (J.toArray J.toString) (J.toArray J.toString))
+toFunDeps :: Json -> Either J.DecodeError (Array (Tuple (Array String) (Array String)))
+toFunDeps = J.toArray (J.toTuple (J.toArray J.toString) (J.toArray J.toString))
 
-versionJSON :: Version -> Json
-versionJSON = J.fromString <<< showVersion
+fromVersion :: Version -> Json
+fromVersion = J.fromString <<< showVersion
 
-jsonVersion :: Json -> Either J.DecodeError Version
-jsonVersion = J.toString >=> Version.parseVersion >>> lmap (show >>> J.DecodeError)
+toVersion :: Json -> Either J.DecodeError Version
+toVersion = J.toString >=> Version.parseVersion >>> lmap (show >>> J.DecodeError)

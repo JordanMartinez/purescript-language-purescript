@@ -44,11 +44,11 @@ instance BoundedEnum CodeUnit where
     | otherwise = Nothing
   fromEnum (CodeUnit c) = c
 
-codeUnitJSON :: CodeUnit -> Json
-codeUnitJSON = fromEnum >>> Json.fromInt
+fromCodeUnit :: CodeUnit -> Json
+fromCodeUnit = fromEnum >>> Json.fromInt
 
-jsonCodeUnit :: Json -> Either Json.DecodeError CodeUnit
-jsonCodeUnit = Json.toInt >=> toEnum >>> note (Json.DecodeError "Value out of bounds for CodeUnit (0 <= x <= 65535)")
+toCodeUnit :: Json -> Either Json.DecodeError CodeUnit
+toCodeUnit = Json.toInt >=> toEnum >>> note (Json.DecodeError "Value out of bounds for CodeUnit (0 <= x <= 65535)")
 
 unpairBE :: CodeUnit -> Array Int
 unpairBE c = [ highByte c, lowByte c ]

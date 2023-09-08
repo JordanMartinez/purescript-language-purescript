@@ -22,15 +22,15 @@ derive instance Generic KindSignatureFor _
 instance Show KindSignatureFor where
   show x = genericShow x
 
-kindSignatureForJSON :: KindSignatureFor -> Json
-kindSignatureForJSON = Json.fromString <<< case _ of
+fromKindSignatureFor :: KindSignatureFor -> Json
+fromKindSignatureFor = Json.fromString <<< case _ of
   DataSig -> "data"
   NewtypeSig -> "newtype"
   TypeSynonymSig -> "type"
   ClassSig -> "class"
 
-jsonKindSignatureFor :: Json -> Either Json.DecodeError KindSignatureFor
-jsonKindSignatureFor = toString >=> case _ of
+toKindSignatureFor :: Json -> Either Json.DecodeError KindSignatureFor
+toKindSignatureFor = toString >=> case _ of
   "data" -> pure DataSig
   "newtype" -> pure NewtypeSig
   "class" -> pure ClassSig

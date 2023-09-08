@@ -9,7 +9,7 @@ import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
-import Language.PureScript.Comments (Comment, commentJSON, jsonComment)
+import Language.PureScript.Comments (Comment, fromComment, toComment)
 
 -- | Source annotation - position information and comments.
 newtype SourceAnn = SourceAnn
@@ -23,13 +23,13 @@ derive instance Generic SourceAnn _
 instance Show SourceAnn where
   show x = genericShow x
 
-sourceAnnJSON :: SourceAnn -> Json
-sourceAnnJSON (SourceAnn { span, comments }) =
-  fromArray2 (sourceSpanJSON span) (fromArray commentJSON comments)
+fromSourceAnn :: SourceAnn -> Json
+fromSourceAnn (SourceAnn { span, comments }) =
+  fromArray2 (fromSourceSpan span) (fromArray fromComment comments)
 
-jsonSourceAnn :: Json -> Either Json.DecodeError SourceAnn
-jsonSourceAnn =
-  toArray2 jsonSourceSpan (toArray jsonComment) \span comments ->
+toSourceAnn :: Json -> Either Json.DecodeError SourceAnn
+toSourceAnn =
+  toArray2 toSourceSpan (toArray toComment) \span comments ->
     SourceAnn { span, comments }
 
 -- | Source position information
@@ -45,12 +45,12 @@ derive instance Generic SourcePos _
 instance Show SourcePos where
   show x = genericShow x
 
-sourcePosJSON :: SourcePos -> Json
-sourcePosJSON (SourcePos { line, column }) =
+fromSourcePos :: SourcePos -> Json
+fromSourcePos (SourcePos { line, column }) =
   fromArray2 (Json.fromInt line) (Json.fromInt column)
 
-jsonSourcePos :: Json -> Either Json.DecodeError SourcePos
-jsonSourcePos = toArray2 toInt toInt \line column ->
+toSourcePos :: Json -> Either Json.DecodeError SourcePos
+toSourcePos = toArray2 toInt toInt \line column ->
   SourcePos { line, column }
 
 newtype SourceSpan = SourceSpan
@@ -66,18 +66,18 @@ derive instance Generic SourceSpan _
 instance Show SourceSpan where
   show x = genericShow x
 
-sourceSpanJSON :: SourceSpan -> Json
-sourceSpanJSON = fromRecordN SourceSpan
+fromSourceSpan :: SourceSpan -> Json
+fromSourceSpan = fromRecordN SourceSpan
   { name: fromRequired Json.fromString
-  , start: fromRequired sourcePosJSON
-  , end: fromRequired sourcePosJSON
+  , start: fromRequired fromSourcePos
+  , end: fromRequired fromSourcePos
   }
 
-jsonSourceSpan :: Json -> Either Json.DecodeError SourceSpan
-jsonSourceSpan = toRecordN SourceSpan
+toSourceSpan :: Json -> Either Json.DecodeError SourceSpan
+toSourceSpan = toRecordN SourceSpan
   { name: toRequired toString
-  , start: toRequired jsonSourcePos
-  , end: toRequired jsonSourcePos
+  , start: toRequired toSourcePos
+  , end: toRequired toSourcePos
   }
 
 nullSourcePos :: SourcePos

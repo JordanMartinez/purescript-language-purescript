@@ -7,7 +7,7 @@ import Data.Argonaut.Core (Json)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype, unwrap)
-import Language.PureScript.PSString (PSString, jsonPSString, psStringJSON)
+import Language.PureScript.PSString (PSString, toPSString, fromPsString)
 import Safe.Coerce (coerce)
 
 -- |
@@ -24,9 +24,9 @@ derive newtype instance Show Label
 derive newtype instance Semigroup Label
 derive newtype instance Monoid Label
 
-labelJSON :: Label -> Json
-labelJSON = unwrap >>> psStringJSON
+fromLabel :: Label -> Json
+fromLabel = unwrap >>> fromPsString
 
-jsonLabel :: Json -> Either Json.DecodeError Label
-jsonLabel = coerce <<< jsonPSString
+toLabel :: Json -> Either Json.DecodeError Label
+toLabel = coerce <<< toPSString
 

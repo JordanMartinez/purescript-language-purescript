@@ -13,7 +13,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Class.Console as Console
-import Language.PureScript.Docs.Types (jsonDocModule, jsonGithubUser, jsonPackage)
+import Language.PureScript.Docs.Types (toDocModule, toGithubUser, toPackage)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff as FSA
 import Node.FS.Stats as Stat
@@ -34,7 +34,7 @@ runDependencyDocsDecodeTest = do
     let path = Path.concat [ output, child, "docs.json" ]
     exists <- liftEffect $ FSSync.exists path
     when exists do
-      decodeFile jsonDocModule path child
+      decodeFile toDocModule path child
   where
   output = "output"
 
@@ -49,7 +49,7 @@ runOldCompilerPackageTest = do
       for_ versions \versionFile -> do
         let
           docsFile = Path.concat [ repoDir, versionFile ]
-          codec = jsonPackage (version 0 7 0 Nil Nil) jsonGithubUser
+          codec = toPackage (version 0 7 0 Nil Nil) toGithubUser
         decodeFile codec docsFile $ repo <> "@" <> versionFile
 
   where
@@ -66,7 +66,7 @@ runPursuitTestsPackageTest = do
       for_ versions \versionFile -> do
         let
           docsFile = Path.concat [ compilerDir, versionFile ]
-          codec = jsonPackage (version 0 7 0 Nil Nil) jsonGithubUser
+          codec = toPackage (version 0 7 0 Nil Nil) toGithubUser
         decodeFile codec docsFile $ "(compiler: " <> compilerDir <> "; repo-version: " <> versionFile <> ")"
 
   where
@@ -74,8 +74,8 @@ runPursuitTestsPackageTest = do
 
 decodeFile :: forall a. (Json -> Either Json.DecodeError a) -> FilePath -> String -> Aff Unit
 decodeFile codec file ref = do
-  errOrJson <- map jsonParser $ FSA.readTextFile UTF8 file
-  case errOrJson of
+  fromerrOr <- map jsonParser $ FSA.readTextFile UTF8 file
+  case fromerrOr of
     Left e ->
       Console.error $ "JSON parse error - " <> ref <> ": " <> e
     Right a -> do

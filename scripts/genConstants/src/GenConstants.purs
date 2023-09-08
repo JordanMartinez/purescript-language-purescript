@@ -24,7 +24,7 @@ main = launchAff_ do
   writeFile "Lib" $ unsafePartial codegenLibsModule
   where
   moduleParts = [ "Language", "PureScript", "Constants" ]
-  mkPath p = Path.concat $ append [ "language-purescript-types", "src" ] $ Array.snoc moduleParts $ p <> ".purs"
+  mkPath p = Path.concat $ append [ "src" ] $ Array.snoc moduleParts $ p <> ".purs"
   mkModuleName = Array.intercalate "." <<< Array.snoc moduleParts
 
   codegenHeader = map Comment

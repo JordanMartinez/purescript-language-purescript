@@ -1,3 +1,52 @@
+package:
+  name: language-purescript
+  dependencies:
+    - argonaut-core
+    - arrays
+    - bifunctors
+    - control
+    - datetime
+    - either
+    - enums
+    - foldable-traversable
+    - foreign-object
+    - formatters
+    - functions
+    - integers
+    - json-codecs
+    - lists
+    - maybe
+    - newtype
+    - nullable
+    - ordered-collections
+    - partial
+    - prelude
+    - safe-coerce
+    - st
+    - strings
+    - tuples
+    - unicode
+    - versions
+
+  test:
+    main: Test.Main
+    dependencies:
+      - console
+      - effect
+      - aff
+      - lists
+      - node-buffer
+      - node-fs
+      - node-fs-aff
+      - node-path
+
+  publish:
+    version: 0.1.0
+    license: BSD-3-Clause
+    location:
+      githubOwner: JordanMartinez
+      githubRepo: purescript-language-purescript
+
 workspace:
   package_set:
     registry: 36.3.0
@@ -10,7 +59,7 @@ workspace:
 
   extra_packages:
     language-purescript:
-      path: "language-purescript"
+      path: "."
     language-cst-parser:
       git: https://github.com/natefaubion/purescript-language-cst-parser.git
       ref: "v0.13.0"

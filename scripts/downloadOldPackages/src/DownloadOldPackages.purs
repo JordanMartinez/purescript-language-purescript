@@ -80,7 +80,7 @@ main = launchAff_ do
 
   writeCache $ Map.unionWith Set.union cachedRepos newlyCachedRepos
   where
-  fixturesDir = Path.concat [ "language-purescript-types", "test", "fixtures" ]
+  fixturesDir = Path.concat [ "test", "fixtures" ]
   cacheFile = Path.concat [ fixturesDir, "cache.json" ]
 
   getCachedRepos :: Aff (Map String (Set (Tuple String String)))

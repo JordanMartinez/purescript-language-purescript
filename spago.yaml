@@ -1,32 +1,32 @@
 package:
   name: language-purescript
   dependencies:
-    - argonaut-core
-    - arrays
-    - bifunctors
-    - control
-    - datetime
-    - either
-    - enums
-    - foldable-traversable
-    - foreign-object
-    - formatters
-    - functions
-    - integers
-    - json-codecs
-    - lists
-    - maybe
-    - newtype
-    - nullable
-    - ordered-collections
-    - partial
-    - prelude
-    - safe-coerce
-    - st
-    - strings
-    - tuples
-    - unicode
-    - versions
+    - argonaut-core: ">=7.0.0 <8.0.0"
+    - arrays: ">=7.2.1 <8.0.0"
+    - bifunctors: ">=6.0.0 <7.0.0"
+    - control: ">=6.0.0 <7.0.0"
+    - datetime: ">=6.1.0 <7.0.0"
+    - either: ">=6.1.0 <7.0.0"
+    - enums: ">=6.0.1 <7.0.0"
+    - foldable-traversable: ">=6.0.0 <7.0.0"
+    - foreign-object: ">=4.1.0 <5.0.0"
+    - formatters: ">=7.0.0 <8.0.0"
+    - functions: ">=6.0.0 <7.0.0"
+    - integers: ">=6.0.0 <7.0.0"
+    - json-codecs: ">=4.0.0 <5.0.0"
+    - lists: ">=7.0.0 <8.0.0"
+    - maybe: ">=6.0.0 <7.0.0"
+    - newtype: ">=5.0.0 <6.0.0"
+    - nullable: ">=6.0.0 <7.0.0"
+    - ordered-collections: ">=3.1.0 <4.0.0"
+    - partial: ">=4.0.0 <5.0.0"
+    - prelude: ">=6.0.1 <7.0.0"
+    - safe-coerce: ">=2.0.0 <3.0.0"
+    - st: ">=6.2.0 <7.0.0"
+    - strings: ">=6.0.1 <7.0.0"
+    - tuples: ">=7.0.0 <8.0.0"
+    - unicode: ">=6.0.0 <7.0.0"
+    - versions: ">=7.0.0 <8.0.0"
 
   test:
     main: Test.Main
@@ -58,8 +58,6 @@ workspace:
     stash: true
 
   extra_packages:
-    language-purescript:
-      path: "."
     language-cst-parser:
       git: https://github.com/natefaubion/purescript-language-cst-parser.git
       ref: "v0.13.0"
@@ -93,53 +91,52 @@ workspace:
         - "typelevel-prelude"
         - "unfoldable"
         - "unsafe-coerce"
-    
     tidy-codegen:
       git: https://github.com/natefaubion/purescript-tidy-codegen.git
       ref: v4.0.0
       dependencies:
-      - aff
-      - ansi
-      - arrays
-      - avar
-      - bifunctors
-      - console
-      - control
-      - dodo-printer
-      - effect
-      - either
-      - enums
-      - exceptions
-      - filterable
-      - foldable-traversable
-      - free
-      - identity
-      - integers
-      - language-cst-parser
-      - lazy
-      - lists
-      - maybe
-      - newtype
-      - node-buffer
-      - node-child-process
-      - node-fs-aff
-      - node-path
-      - node-process
-      - node-streams
-      - ordered-collections
-      - parallel
-      - partial
-      - posix-types
-      - prelude
-      - record
-      - safe-coerce
-      - st
-      - strings
-      - tidy
-      - transformers
-      - tuples
-      - type-equality
-      - unicode
+        - aff
+        - ansi
+        - arrays
+        - avar
+        - bifunctors
+        - console
+        - control
+        - dodo-printer
+        - effect
+        - either
+        - enums
+        - exceptions
+        - filterable
+        - foldable-traversable
+        - free
+        - identity
+        - integers
+        - language-cst-parser
+        - lazy
+        - lists
+        - maybe
+        - newtype
+        - node-buffer
+        - node-child-process
+        - node-fs-aff
+        - node-path
+        - node-process
+        - node-streams
+        - ordered-collections
+        - parallel
+        - partial
+        - posix-types
+        - prelude
+        - record
+        - safe-coerce
+        - st
+        - strings
+        - tidy
+        - transformers
+        - tuples
+        - type-equality
+        - unicode
     tidy:
       git: https://github.com/natefaubion/purescript-tidy.git
       ref: "v0.10.0"

@@ -1,0 +1,11 @@
+{
+  "name": "language-purescript",
+  "version": "0.15.11",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "spago": "^0.93.14"
+  }
+}

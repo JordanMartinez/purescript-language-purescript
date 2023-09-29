@@ -4,6 +4,10 @@ A small strongly typed programming language with expressive types that compiles 
 
 [![Hackage](https://img.shields.io/hackage/v/purescript.svg)](http://hackage.haskell.org/package/purescript) [![Build Status](https://github.com/purescript/purescript/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/purescript/purescript/actions/workflows/ci.yml)
 
+## License
+
+This repo ports [bower-json](https://github.com/hdgarrood/bower-json), which is licensed under [MIT](https://github.com/hdgarrood/bower-json/blob/master/LICENSE) thanks to [hdgarood](https://github.com/hdgarrood).
+
 ## Language info
 
 - [PureScript home](http://purescript.org)

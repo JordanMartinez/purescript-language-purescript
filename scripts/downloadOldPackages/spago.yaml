@@ -1,0 +1,28 @@
+package:
+  name: "scripts-download-old-packages"
+  dependencies:
+    - argonaut-core
+    - aff
+    - arrays
+    - console
+    - effect
+    - either
+    - foldable-traversable
+    - foreign-object
+    - json-codecs
+    - maybe
+    - node-buffer
+    - node-fs
+    - node-fs-aff
+    - node-http
+    - node-path
+    - node-streams
+    - options
+    - ordered-collections
+    - prelude
+    - refs
+    - strings
+    - tuples
+
+  run:
+    main: Scripts.DownloadOldPackages

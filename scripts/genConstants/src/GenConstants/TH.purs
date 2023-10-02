@@ -53,14 +53,14 @@ cls cn = ReaderT \{ moduleName, prefix } -> do
   names <- importFrom "Language.PureScript.Names"
     { tyProperName: importType "ProperName"
     , ctorProperName: importCtor "ProperName" "ProperName"
-    , tyTypeName: importType "TypeName"
+    , tyClassName: importType "ClassName"
     , tyQualified: importType "Qualified"
     , ctorQualified: importCtor "Qualified" "Qualified"
     , ctorByModuleName: importCtor "QualifiedBy" "ByModuleName"
     }
   tell
     [ declSignature valName $ typeApp (typeCtor names.tyQualified)
-        [ typeApp (typeCtor names.tyProperName) [ typeCtor names.tyTypeName ] ]
+        [ typeApp (typeCtor names.tyProperName) [ typeCtor names.tyClassName ] ]
     , declValue valName [] $ exprApp (exprCtor names.ctorQualified)
         [ exprApp (exprCtor names.ctorByModuleName) [ exprIdent moduleName ]
         , exprApp (exprCtor names.ctorProperName) [ exprString cn ]

@@ -4,12 +4,12 @@
 ------------------------------------
 module Language.PureScript.Constants.Prim where
 
-import Language.PureScript.Names (TypeName, Ident(..), ModuleName(..), ProperName(..), Qualified(..), QualifiedBy(..))
+import Language.PureScript.Names (ClassName, TypeName, Ident(..), ModuleName(..), ProperName(..), Qualified(..), QualifiedBy(..))
 
 m_Prim :: ModuleName
 m_Prim = ModuleName "Prim"
 
-clsPartial :: Qualified (ProperName TypeName)
+clsPartial :: Qualified (ProperName ClassName)
 clsPartial = Qualified (ByModuleName m_Prim) (ProperName "Partial")
 
 tyArray :: Qualified (ProperName TypeName)
@@ -66,22 +66,22 @@ tyTrue = Qualified (ByModuleName m_Prim_Boolean) (ProperName "True")
 m_Prim_Coerce :: ModuleName
 m_Prim_Coerce = ModuleName "Prim.Coerce"
 
-clsCoercible :: Qualified (ProperName TypeName)
+clsCoercible :: Qualified (ProperName ClassName)
 clsCoercible = Qualified (ByModuleName m_Prim_Coerce) (ProperName "Coercible")
 
 m_Prim_Int :: ModuleName
 m_Prim_Int = ModuleName "Prim.Int"
 
-clsIntAdd :: Qualified (ProperName TypeName)
+clsIntAdd :: Qualified (ProperName ClassName)
 clsIntAdd = Qualified (ByModuleName m_Prim_Int) (ProperName "Add")
 
-clsIntCompare :: Qualified (ProperName TypeName)
+clsIntCompare :: Qualified (ProperName ClassName)
 clsIntCompare = Qualified (ByModuleName m_Prim_Int) (ProperName "Compare")
 
-clsIntMul :: Qualified (ProperName TypeName)
+clsIntMul :: Qualified (ProperName ClassName)
 clsIntMul = Qualified (ByModuleName m_Prim_Int) (ProperName "Mul")
 
-clsIntToString :: Qualified (ProperName TypeName)
+clsIntToString :: Qualified (ProperName ClassName)
 clsIntToString = Qualified (ByModuleName m_Prim_Int) (ProperName "ToString")
 
 m_Prim_Ordering :: ModuleName
@@ -102,16 +102,16 @@ tyLT = Qualified (ByModuleName m_Prim_Ordering) (ProperName "LT")
 m_Prim_Row :: ModuleName
 m_Prim_Row = ModuleName "Prim.Row"
 
-clsRowCons :: Qualified (ProperName TypeName)
+clsRowCons :: Qualified (ProperName ClassName)
 clsRowCons = Qualified (ByModuleName m_Prim_Row) (ProperName "Cons")
 
-clsRowLacks :: Qualified (ProperName TypeName)
+clsRowLacks :: Qualified (ProperName ClassName)
 clsRowLacks = Qualified (ByModuleName m_Prim_Row) (ProperName "Lacks")
 
-clsRowNub :: Qualified (ProperName TypeName)
+clsRowNub :: Qualified (ProperName ClassName)
 clsRowNub = Qualified (ByModuleName m_Prim_Row) (ProperName "Nub")
 
-clsRowUnion :: Qualified (ProperName TypeName)
+clsRowUnion :: Qualified (ProperName ClassName)
 clsRowUnion = Qualified (ByModuleName m_Prim_Row) (ProperName "Union")
 
 m_Prim_RowList :: ModuleName
@@ -120,7 +120,7 @@ m_Prim_RowList = ModuleName "Prim.RowList"
 tyRowList :: Qualified (ProperName TypeName)
 tyRowList = Qualified (ByModuleName m_Prim_RowList) (ProperName "RowList")
 
-clsRowToList :: Qualified (ProperName TypeName)
+clsRowToList :: Qualified (ProperName ClassName)
 clsRowToList = Qualified (ByModuleName m_Prim_RowList) (ProperName "RowToList")
 
 tyRowListCons :: Qualified (ProperName TypeName)
@@ -132,22 +132,22 @@ tyRowListNil = Qualified (ByModuleName m_Prim_RowList) (ProperName "Nil")
 m_Prim_Symbol :: ModuleName
 m_Prim_Symbol = ModuleName "Prim.Symbol"
 
-clsSymbolAppend :: Qualified (ProperName TypeName)
+clsSymbolAppend :: Qualified (ProperName ClassName)
 clsSymbolAppend = Qualified (ByModuleName m_Prim_Symbol) (ProperName "Append")
 
-clsSymbolCompare :: Qualified (ProperName TypeName)
+clsSymbolCompare :: Qualified (ProperName ClassName)
 clsSymbolCompare = Qualified (ByModuleName m_Prim_Symbol) (ProperName "Compare")
 
-clsSymbolCons :: Qualified (ProperName TypeName)
+clsSymbolCons :: Qualified (ProperName ClassName)
 clsSymbolCons = Qualified (ByModuleName m_Prim_Symbol) (ProperName "Cons")
 
 m_Prim_TypeError :: ModuleName
 m_Prim_TypeError = ModuleName "Prim.TypeError"
 
-clsFail :: Qualified (ProperName TypeName)
+clsFail :: Qualified (ProperName ClassName)
 clsFail = Qualified (ByModuleName m_Prim_TypeError) (ProperName "Fail")
 
-clsWarn :: Qualified (ProperName TypeName)
+clsWarn :: Qualified (ProperName ClassName)
 clsWarn = Qualified (ByModuleName m_Prim_TypeError) (ProperName "Warn")
 
 tyAbove :: Qualified (ProperName TypeName)

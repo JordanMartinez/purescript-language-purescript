@@ -5,7 +5,7 @@
 module Language.PureScript.Constants.Lib where
 
 import Data.Tuple (Tuple(..))
-import Language.PureScript.Names (ConstructorName, TypeName, Ident(..), ModuleName(..), ProperName(..), Qualified(..), QualifiedBy(..))
+import Language.PureScript.Names (ClassName, ConstructorName, TypeName, Ident(..), ModuleName(..), ProperName(..), Qualified(..), QualifiedBy(..))
 
 m_Control_Apply :: ModuleName
 m_Control_Apply = ModuleName "Control.Apply"
@@ -37,7 +37,7 @@ s_bind = "bind"
 p_bind :: Tuple ModuleName String
 p_bind = Tuple m_Control_Bind "bind"
 
-clsDiscard :: Qualified (ProperName TypeName)
+clsDiscard :: Qualified (ProperName ClassName)
 clsDiscard = Qualified (ByModuleName m_Control_Bind) (ProperName "Discard")
 
 s_discard :: String
@@ -88,7 +88,7 @@ p_boundedBoolean = Tuple m_Data_Bounded "boundedBoolean"
 m_Data_Eq :: ModuleName
 m_Data_Eq = ModuleName "Data.Eq"
 
-clsEq :: Qualified (ProperName TypeName)
+clsEq :: Qualified (ProperName ClassName)
 clsEq = Qualified (ByModuleName m_Data_Eq) (ProperName "Eq")
 
 s_eq :: String
@@ -100,7 +100,7 @@ p_eq = Tuple m_Data_Eq "eq"
 i_eq :: Qualified Ident
 i_eq = Qualified (ByModuleName m_Data_Eq) (Ident "eq")
 
-clsEq1 :: Qualified (ProperName TypeName)
+clsEq1 :: Qualified (ProperName ClassName)
 clsEq1 = Qualified (ByModuleName m_Data_Eq) (ProperName "Eq1")
 
 s_eq1 :: String
@@ -154,7 +154,7 @@ i_flip = Qualified (ByModuleName m_Data_Function) (Ident "flip")
 m_Data_Functor :: ModuleName
 m_Data_Functor = ModuleName "Data.Functor"
 
-clsFunctor :: Qualified (ProperName TypeName)
+clsFunctor :: Qualified (ProperName ClassName)
 clsFunctor = Qualified (ByModuleName m_Data_Functor) (ProperName "Functor")
 
 s_map :: String
@@ -166,7 +166,7 @@ i_map = Qualified (ByModuleName m_Data_Functor) (Ident "map")
 m_Data_Generic_Rep :: ModuleName
 m_Data_Generic_Rep = ModuleName "Data.Generic.Rep"
 
-clsGeneric :: Qualified (ProperName TypeName)
+clsGeneric :: Qualified (ProperName ClassName)
 clsGeneric = Qualified (ByModuleName m_Data_Generic_Rep) (ProperName "Generic")
 
 i_from :: Qualified Ident
@@ -247,7 +247,7 @@ i_mempty = Qualified (ByModuleName m_Data_Monoid) (Ident "mempty")
 m_Data_Ord :: ModuleName
 m_Data_Ord = ModuleName "Data.Ord"
 
-clsOrd :: Qualified (ProperName TypeName)
+clsOrd :: Qualified (ProperName ClassName)
 clsOrd = Qualified (ByModuleName m_Data_Ord) (ProperName "Ord")
 
 s_compare :: String
@@ -256,7 +256,7 @@ s_compare = "compare"
 i_compare :: Qualified Ident
 i_compare = Qualified (ByModuleName m_Data_Ord) (Ident "compare")
 
-clsOrd1 :: Qualified (ProperName TypeName)
+clsOrd1 :: Qualified (ProperName ClassName)
 clsOrd1 = Qualified (ByModuleName m_Data_Ord) (ProperName "Ord1")
 
 s_compare1 :: String
@@ -310,7 +310,7 @@ ctorLT = Qualified (ByModuleName m_Data_Ordering) (ProperName "LT")
 m_Data_Reflectable :: ModuleName
 m_Data_Reflectable = ModuleName "Data.Reflectable"
 
-clsReflectable :: Qualified (ProperName TypeName)
+clsReflectable :: Qualified (ProperName ClassName)
 clsReflectable = Qualified (ByModuleName m_Data_Reflectable) (ProperName "Reflectable")
 
 m_Data_Ring :: ModuleName
@@ -370,7 +370,7 @@ p_semiringNumber = Tuple m_Data_Semiring "semiringNumber"
 m_Data_Symbol :: ModuleName
 m_Data_Symbol = ModuleName "Data.Symbol"
 
-clsIsSymbol :: Qualified (ProperName TypeName)
+clsIsSymbol :: Qualified (ProperName ClassName)
 clsIsSymbol = Qualified (ByModuleName m_Data_Symbol) (ProperName "IsSymbol")
 
 m_Data_Array :: ModuleName
@@ -382,7 +382,7 @@ p_unsafeIndex = Tuple m_Data_Array "unsafeIndex"
 m_Data_Bifunctor :: ModuleName
 m_Data_Bifunctor = ModuleName "Data.Bifunctor"
 
-clsBifunctor :: Qualified (ProperName TypeName)
+clsBifunctor :: Qualified (ProperName ClassName)
 clsBifunctor = Qualified (ByModuleName m_Data_Bifunctor) (ProperName "Bifunctor")
 
 s_bimap :: String
@@ -400,7 +400,7 @@ i_rmap = Qualified (ByModuleName m_Data_Bifunctor) (Ident "rmap")
 m_Data_Functor_Contravariant :: ModuleName
 m_Data_Functor_Contravariant = ModuleName "Data.Functor.Contravariant"
 
-clsContravariant :: Qualified (ProperName TypeName)
+clsContravariant :: Qualified (ProperName ClassName)
 clsContravariant = Qualified (ByModuleName m_Data_Functor_Contravariant)
   (ProperName "Contravariant")
 
@@ -437,7 +437,7 @@ p_runEffectFn = Tuple m_Effect_Uncurried "runEffectFn"
 m_Data_Bifoldable :: ModuleName
 m_Data_Bifoldable = ModuleName "Data.Bifoldable"
 
-clsBifoldable :: Qualified (ProperName TypeName)
+clsBifoldable :: Qualified (ProperName ClassName)
 clsBifoldable = Qualified (ByModuleName m_Data_Bifoldable) (ProperName "Bifoldable")
 
 s_bifoldMap :: String
@@ -461,7 +461,7 @@ i_bifoldr = Qualified (ByModuleName m_Data_Bifoldable) (Ident "bifoldr")
 m_Data_Bitraversable :: ModuleName
 m_Data_Bitraversable = ModuleName "Data.Bitraversable"
 
-clsBitraversable :: Qualified (ProperName TypeName)
+clsBitraversable :: Qualified (ProperName ClassName)
 clsBitraversable = Qualified (ByModuleName m_Data_Bitraversable) (ProperName "Bitraversable")
 
 i_bitraverse :: Qualified Ident
@@ -479,7 +479,7 @@ i_rtraverse = Qualified (ByModuleName m_Data_Bitraversable) (Ident "rtraverse")
 m_Data_Foldable :: ModuleName
 m_Data_Foldable = ModuleName "Data.Foldable"
 
-clsFoldable :: Qualified (ProperName TypeName)
+clsFoldable :: Qualified (ProperName ClassName)
 clsFoldable = Qualified (ByModuleName m_Data_Foldable) (ProperName "Foldable")
 
 s_foldMap :: String
@@ -503,7 +503,7 @@ i_foldr = Qualified (ByModuleName m_Data_Foldable) (Ident "foldr")
 m_Data_Traversable :: ModuleName
 m_Data_Traversable = ModuleName "Data.Traversable"
 
-clsTraversable :: Qualified (ProperName TypeName)
+clsTraversable :: Qualified (ProperName ClassName)
 clsTraversable = Qualified (ByModuleName m_Data_Traversable) (ProperName "Traversable")
 
 i_traverse :: Qualified Ident
@@ -554,7 +554,7 @@ p_zshr = Tuple m_Data_Int_Bits "zshr"
 m_Data_Newtype :: ModuleName
 m_Data_Newtype = ModuleName "Data.Newtype"
 
-clsNewtype :: Qualified (ProperName TypeName)
+clsNewtype :: Qualified (ProperName ClassName)
 clsNewtype = Qualified (ByModuleName m_Data_Newtype) (ProperName "Newtype")
 
 m_Partial_Unsafe :: ModuleName
@@ -569,7 +569,7 @@ i_unsafePartial = Qualified (ByModuleName m_Partial_Unsafe) (Ident "unsafePartia
 m_Data_Profunctor :: ModuleName
 m_Data_Profunctor = ModuleName "Data.Profunctor"
 
-clsProfunctor :: Qualified (ProperName TypeName)
+clsProfunctor :: Qualified (ProperName ClassName)
 clsProfunctor = Qualified (ByModuleName m_Data_Profunctor) (ProperName "Profunctor")
 
 s_dimap :: String

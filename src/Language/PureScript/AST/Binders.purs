@@ -1,6 +1,4 @@
--- |
--- Case binders
---
+-- | Case binders
 module Language.PureScript.AST.Binders where
 
 import Prelude
